@@ -3,6 +3,8 @@ name: Build
 on:
   workflow_run:
     workflows: ["Formatting"]
+    types:
+      - completed
 
 jobs:
   check-build:

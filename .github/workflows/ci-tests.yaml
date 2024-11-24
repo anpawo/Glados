@@ -3,6 +3,8 @@ name: Functionnal Tests
 on:
   workflow_run:
     workflows: ["Build"]
+    types:
+      - completed
 
 jobs:
   check-build:
