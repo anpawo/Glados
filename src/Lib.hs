@@ -11,4 +11,4 @@ module Lib
 where
 
 someFunc :: IO ()
-someFunc = putStrLn "templateFunction"
+someFunc = putStrLn "templateFunction""
