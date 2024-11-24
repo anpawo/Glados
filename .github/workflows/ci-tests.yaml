@@ -1,10 +1,8 @@
 name: Functionnal Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_run:
+    workflows: ["Build"]
 
 jobs:
   check-build:
@@ -13,6 +11,9 @@ jobs:
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
+
+      - name: Run the unit-tests
+        run: make unit-tests
       
-      - name: Run the tests
+      - name: Run the functionnal-tests
         run: make functionnal-tests
