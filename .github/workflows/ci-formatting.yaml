@@ -1,0 +1,29 @@
+name: Formatting
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REPORT_FILE: "coding-style-reports.log"
+
+jobs:
+  check-formatting:
+    runs-on: ubuntu-latest
+    
+    container:
+      image: ghcr.io/epitech/coding-style-checker:latest
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+      
+      - name: Run lambdananas # (Epitech's coding style checker)
+        run: |
+          lambdananas . > $REPORT_FILE
+          if [ -s $REPORT_FILE ]; then
+            cat $REPORT_FILE
+            exit 1
+          fi
