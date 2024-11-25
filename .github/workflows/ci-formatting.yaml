@@ -18,7 +18,8 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
       
-      - name: Run lambdananas # (Epitech's coding style checker)
+      # (Epitech's coding style checker)
+      - name: Run lambdananas
         run: |
           lambdananas . > $REPORT_FILE
           if [ -s $REPORT_FILE ]; then

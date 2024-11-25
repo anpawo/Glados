@@ -1,11 +1,5 @@
 name: Build
 
-# on:
-#   workflow_run:
-#     workflows: ["Formatting"]
-#     types:
-#       - completed
-
 on:
   pull_request:
     branches: [main]
