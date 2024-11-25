@@ -1,14 +1,6 @@
 name: Functionnal Tests
 
-# on:
-#   workflow_run:
-#     workflows: ["Build"]
-#     types:
-#       - completed
-
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 

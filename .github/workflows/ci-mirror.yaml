@@ -1,0 +1,13 @@
+name: Mirror
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Todo Mirror
+        run: echo "todo-mirror"
