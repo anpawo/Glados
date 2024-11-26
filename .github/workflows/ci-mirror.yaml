@@ -7,13 +7,12 @@ on:
 
 env:
   MIRROR_URL: "git@github.com:EpitechPromo2027/B-FUN-500-PAR-5-2-glados-marius.rousset.git"
-  SOURCE_REPO: "anpawo/Glados"
 
 jobs:
   push-to-mirror:
     runs-on: ubuntu-latest
     
-    if: ${{ github.repository == env.SOURCE_REPO }}
+    if: ${{ github.repository == 'anpawo/Glados' }}
 
     steps:
       - name: Checkout the repo
