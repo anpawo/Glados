@@ -10,7 +10,7 @@ env:
 
 jobs:
   push-to-mirror:
-    if: ${{github.repository == vars.SOURCE_REPO_NAME}}
+    if: ${{ github.repository == vars.SOURCE_REPO_NAME }}
 
     runs-on: ubuntu-latest
 
