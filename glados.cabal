@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Lisp.Ast
+      Lisp.SExpression
   other-modules:
       Paths_glados
   autogen-modules:
