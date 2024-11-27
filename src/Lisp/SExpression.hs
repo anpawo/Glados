@@ -13,6 +13,7 @@ import Data.Maybe (fromJust)
 data SExpr
   = SInt Int
   | SSymbol String
+  | SString String
   | SList [SExpr]
   deriving (Show)
 
@@ -31,6 +32,7 @@ getList _ = Nothing
 printTree :: SExpr -> Maybe String
 printTree (SInt x) = Just ("Int " ++ show x)
 printTree (SSymbol x) = Just ("Symbol " ++ x)
+printTree (SString x) = Just ("String " ++ x)
 printTree (SList x) = Just ("List [" ++ printRest x ++ "]")
   where
     printRest [SSymbol s] = "Symbol '" ++ s ++ "'"
