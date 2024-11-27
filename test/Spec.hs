@@ -5,8 +5,8 @@
 -- Spec
 --
 
+import AstSpec (spec)
 import Test.Hspec (describe, hspec)
-import TestTemplateSpec (spec)
 
 -- We will use Hspec for unit tests.
 -- Main of the tests.
@@ -15,4 +15,4 @@ import TestTemplateSpec (spec)
 
 main :: IO ()
 main = hspec $ do
-  describe "Template-Test" TestTemplateSpec.spec
+  describe "Ast" AstSpec.spec
