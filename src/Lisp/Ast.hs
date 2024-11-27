@@ -5,30 +5,52 @@
 -- AST
 -}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Lisp.Ast (sexprToAST) where
 
 import Lisp.SExpression (SExpr (..))
 
 data Ast
-  = ADefine {aname :: String, abody :: Ast}
-  | AInt Int
-  | ASymbol String
-  | ABool Bool
-  | AList [Ast]
+  = TDefine {fname :: String, args :: [Ast], body :: Ast}
+  | TCall {fname :: String, body :: Ast}
+  | TInt Int
+  | TSymbol String
+  | TBool Bool
+  | TList [Ast]
+  | TVoid -- empty define e.g: (define y)
   deriving (Show)
 
-sexprToAST :: SExpr -> Maybe Ast
-sexprToAST (SInt x) = Just (AInt x)
-sexprToAST (SSymbol "#t") = Just (ABool True)
-sexprToAST (SSymbol "#f") = Just (ABool False)
-sexprToAST (SSymbol x) = Just (ASymbol x)
+sexprToAST :: SExpr -> Either String Ast
+sexprToAST (SInt x) = Right (TInt x)
+sexprToAST (SSymbol "#t") = Right (TBool True)
+sexprToAST (SSymbol "#f") = Right (TBool False)
+sexprToAST (SSymbol x) = Right (TSymbol x)
+sexprToAST (SList (SSymbol "define" : SInt _ : _)) = Left "Invalid define: cannot have a name starting with a number."
 sexprToAST (SList (SSymbol "define" : SSymbol name : rst)) =
-  Just (ADefine name (parseFunctionBody (SList rst)))
---   where
---     parseFunctionBody :: SExpr -> Ast
---     parseFunctionBody (SList [x]) = parseFunctionBody x
---     parseFunctionBody (SList (x : s)) = AList (parseFunctionBody x : [parseFunctionBody (SList s)])
---     parseFunctionBody (SList _) = AList (parseFunctionBody x : [parseFunctionBody (SList s)])
---     parseFunctionBody _ = AInt 0
-sexprToAST _ = Nothing
+  case sexprToAST (SList rst) of
+    Right x -> Right (TDefine name [] x)
+    err -> err
+sexprToAST (SList (SSymbol "define" : (SList x) : y)) =
+  case sexprToAST (SList x) of
+    Right x2 -> case sexprToAST (SList y) of
+      Right (TList (TSymbol s : rst))
+        | all isTSymbol rst -> Right (TDefine s rst x2)
+        | otherwise -> Left "Invalid define: the arguments' name must be Strings."
+        where
+          isTSymbol :: Ast -> Bool
+          isTSymbol (TSymbol _) = True
+          isTSymbol _ = False
+      Right _ -> Left "Invalid define: the name or arguments are invalid."
+      err -> err
+    err -> err
+sexprToAST _ = Left "todo" -- Todo Call
+-- sexprToAST (SList []) = Nothing
+
+handleDefine :: [SExpr] -> Either String Ast
+handleDefine (SInt x : _) = Left $ "Invalid define: cannot have a name starting with a number: " ++ show x
+handleDefine (SList _ : _) = Left ""
+
+-- handleCall :: [SExpr] -> Ast
