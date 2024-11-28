@@ -5,7 +5,7 @@
 -- SExpr
 -}
 
-module Lisp.SExpression (SExpr (..), getSymbol, getInteger, getList, printTree) where
+module Lisp.SExpression (SExpr (..), getSymbol, getInteger, getList, printTree, getString) where
 
 data SExpr
   = SInt Int
@@ -17,6 +17,10 @@ data SExpr
 getSymbol :: SExpr -> Maybe String
 getSymbol (SSymbol x) = Just x
 getSymbol _ = Nothing
+
+getString :: SExpr -> Maybe String
+getString (SString x) = Just x
+getString _ = Nothing
 
 getInteger :: SExpr -> Maybe Int
 getInteger (SInt x) = Just x
