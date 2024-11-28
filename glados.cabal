@@ -27,6 +27,7 @@ library
   exposed-modules:
       Lib
       Lisp.Ast
+      Lisp.ErrorMessage
       Lisp.SExpression
   other-modules:
       Paths_glados
