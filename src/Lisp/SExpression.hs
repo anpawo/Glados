@@ -4,11 +4,8 @@
 -- File description:
 -- SExpr
 -}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Lisp.SExpression (SExpr (..)) where
-
-import Data.Maybe (fromJust)
+module Lisp.SExpression (SExpr (..), getSymbol, getInteger, getList, printTree) where
 
 data SExpr
   = SInt Int
@@ -33,10 +30,6 @@ printTree :: SExpr -> Maybe String
 printTree (SInt x) = Just ("Int " ++ show x)
 printTree (SSymbol x) = Just ("Symbol " ++ x)
 printTree (SString x) = Just ("String " ++ x)
-printTree (SList x) = Just ("List [" ++ printRest x ++ "]")
-  where
-    printRest [SSymbol s] = "Symbol '" ++ s ++ "'"
-    printRest [a] = fromJust (printTree a)
-    printRest (SSymbol s : b) = "Symbol '" ++ s ++ "', " ++ printRest b
-    printRest (a : b) = fromJust (printTree a) ++ ", " ++ printRest b
-    printRest _ = ""
+printTree (SList x) = case mapM printTree x of
+  Just l -> Just $ "List [" ++ show l ++ "]"
+  _ -> Nothing
