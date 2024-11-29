@@ -4,6 +4,9 @@
 -- File description:
 -- Parser
 -}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Redundant section" #-}
 
 module Lisp.Parser
   ( Parsec,
@@ -31,14 +34,17 @@ module Lisp.Parser
     between,
     anySingle,
     parseSString,
+    parseSList,
+    parsers,
   )
 where
 
+import Control.Applicative ((<|>))
 import Data.Text (Text, pack)
 import Data.Void (Void)
 import Lisp.SExpression (SExpr (..))
-import Text.Megaparsec (Parsec, anySingle, between, choice, many, noneOf, parse, parseTest, some, try)
-import Text.Megaparsec.Char (alphaNumChar, char, letterChar, newline, string)
+import Text.Megaparsec (Parsec, anySingle, between, choice, many, noneOf, parse, parseTest, skipSome, some, try)
+import Text.Megaparsec.Char (alphaNumChar, char, letterChar, newline, space, string)
 import Text.Megaparsec.Char.Lexer (decimal, hexadecimal, signed, symbol)
 
 -- import Text.Megaparsec.Combinator (some)
@@ -52,18 +58,19 @@ parseSInt :: Parser SExpr
 parseSInt = SInt <$> signed mempty decimal
 
 parseSSymbol :: Parser SExpr
-parseSSymbol = SSymbol <$> ((:) <$> letterChar <*> many alphaNumChar)
+parseSSymbol = SSymbol <$> ((:) <$> letterChar "tu dois fixer le fait que tu puisses appeler des fonctions = ou -)" <*> many alphaNumChar) -- at least one letter at first
 
 parseSString :: Parser SExpr
-parseSString = SString <$> (char '"' *> many (noneOf "\"") <* char '"')
+parseSString = SString <$> (char '"' *> many (noneOf "\"") <* char '"') -- can be an empty string
 
 parseSList :: Parser SExpr
-parseSList = SList <$> p
+-- parseSList = SList <$> (char '(' *> (toList <$> oneExpr) <* many space <* char ')')
+parseSList = SList <$> (char '(' *> ((:) <$> oneExpr <*> many ((some (char ' ') *>) oneExpr)) <* char ')')
+  where
+    oneExpr = parsers
 
-parseInsideList :: Parser SExpr
-parseInsideList = choice
-    [ 
-    ]
+parsers :: Parser SExpr
+parsers = parseSSymbol <|> parseSInt <|> parseSString <|> parseSList
 
 -- parseOneExpression :: Parser SExpr
 --     parseSpace
