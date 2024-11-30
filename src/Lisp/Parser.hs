@@ -9,45 +9,28 @@
 {-# HLINT ignore "Redundant section" #-}
 
 module Lisp.Parser
-  ( Parsec,
-    choice,
-    many,
-    parse,
-    parseTest,
-    some,
-    try,
-    SExpr (..),
-    Text,
+  ( SExpr (..),
     pack,
+    unpack,
+    Text,
     Void,
-    char,
-    newline,
-    string,
-    decimal,
-    hexadecimal,
-    signed,
-    symbol,
-    t,
     parseSInt,
-    letterChar,
     parseSSymbol,
-    between,
-    anySingle,
     parseSString,
     parseSList,
-    parsers,
+    Parser,
+    runParser,
+    t,
   )
 where
 
 import Control.Applicative ((<|>))
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
 import Lisp.SExpression (SExpr (..))
-import Text.Megaparsec (Parsec, anySingle, between, choice, many, noneOf, parse, parseTest, skipSome, some, try)
-import Text.Megaparsec.Char (alphaNumChar, char, letterChar, newline, space, string)
-import Text.Megaparsec.Char.Lexer (decimal, hexadecimal, signed, symbol)
-
--- import Text.Megaparsec.Combinator (some)
+import Text.Megaparsec (MonadParsec (eof), Parsec, many, noneOf, oneOf, parseTest, runParser, some, try) -- TODO: skipSome
+import Text.Megaparsec.Char (char)
+import Text.Megaparsec.Char.Lexer (decimal, signed)
 
 type Parser = Parsec Void Text
 
@@ -58,29 +41,31 @@ parseSInt :: Parser SExpr
 parseSInt = SInt <$> signed mempty decimal
 
 parseSSymbol :: Parser SExpr
-parseSSymbol = SSymbol <$> ((:) <$> letterChar "tu dois fixer le fait que tu puisses appeler des fonctions = ou -)" <*> many alphaNumChar) -- at least one letter at first
+parseSSymbol = SSymbol <$> ((:) <$> noneOf startForbid <*> many (noneOf otherForbid))
+  where
+    startForbid = "\"()0123456789 \t\n\r\f\v"
+    otherForbid = "\"() \t\n\r\f\v"
 
 parseSString :: Parser SExpr
 parseSString = SString <$> (char '"' *> many (noneOf "\"") <* char '"') -- can be an empty string
 
 parseSList :: Parser SExpr
--- parseSList = SList <$> (char '(' *> (toList <$> oneExpr) <* many space <* char ')')
-parseSList = SList <$> (char '(' *> ((:) <$> oneExpr <*> many ((some (char ' ') *>) oneExpr)) <* char ')')
+parseSList = SList <$> (char '(' *> ((:) <$> startExpr <*> many otherExpr) <* many spaces <* char ')')
   where
-    oneExpr = parsers
+    startExpr = many spaces *> (try parseSInt <|> try parseSSymbol <|> parseSString <|> parseSList)
+    otherExpr = try (some spaces *> (try parseSInt <|> try parseSSymbol <|> try parseSString)) <|> try (many spaces *> parseSList)
 
-parsers :: Parser SExpr
-parsers = parseSSymbol <|> parseSInt <|> parseSString <|> parseSList
+spaces :: Parser Char
+spaces = oneOf " \t\n\r\f\v"
 
--- parseOneExpression :: Parser SExpr
---     parseSpace
---     (parseInt -> parseInput)
---     (parseSymbol -> parseInput)
---     (parseString -> parseInput)
---     (parseList -> parseInput)
---     parseEof
+parseInput :: Parser [SExpr]
+parseInput = (:) <$> (removeSpaces *> eof *>) parseOneExp <*> parseInput
+  where
+    removeSpaces = many spaces
+    parseOneExp = try parseSInt <|> try parseSSymbol <|> try parseSString <|> try parseSList
 
--- parseInput :: Parser SExpr
--- parseInput = parseOneExpression
+-- TODO: fix this function
+
+-- TODO: add tests
 
 -- parseComments :: Parser Void
