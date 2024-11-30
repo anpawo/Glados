@@ -39,11 +39,13 @@ re: fclean
 
 .PHONY: unit-tests
 unit-tests:
+	stack clean
 	stack test
 
 
 .PHONY: functionnal-tests
 functionnal-tests:
+	stack clean
 	@ echo "not implemented yet"
 
 
