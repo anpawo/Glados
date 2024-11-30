@@ -12,7 +12,7 @@ data SExpr
   | SSymbol String
   | SString String
   | SList [SExpr]
-  deriving (Show)
+  deriving (Eq, Show)
 
 getSymbol :: SExpr -> Maybe String
 getSymbol (SSymbol x) = Just x
