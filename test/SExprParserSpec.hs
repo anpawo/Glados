@@ -5,7 +5,7 @@
 -- ParserToSExprSpec
 --
 
-module ParserToSExprSpec (spec) where
+module SExprParserSpec (spec) where
 
 import Data.Either (isLeft)
 import qualified Lisp.Parser as LP

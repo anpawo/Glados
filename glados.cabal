@@ -63,7 +63,7 @@ test-suite glados-test
   main-is: Spec.hs
   other-modules:
       AstSpec
-      ParserToSExprSpec
+      SExprParserSpec
       Paths_glados
   autogen-modules:
       Paths_glados

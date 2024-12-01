@@ -6,11 +6,11 @@
 --
 
 -- import AstSpec (spec)
-import ParserToSExprSpec (spec)
+import SExprParserSpec (spec)
 import Test.Hspec (describe, hspec)
-
 
 main :: IO ()
 main = hspec $ do
-  describe "Parsing String to SExpr" ParserToSExprSpec.spec
+  describe "Parsing String to SExpr" SExprParserSpec.spec
+
 --   -- describe "Ast" AstSpec.spec
