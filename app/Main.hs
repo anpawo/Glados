@@ -7,10 +7,16 @@
 
 module Main (main) where
 
-import Lib (someFunc)
+import Lisp.VirtualMachine (interpreter, runFile)
+import System.Environment (getArgs)
+
+-- could handle some debug flags
+handleArgs :: [String] -> IO ()
+handleArgs [] = interpreter []
+handleArgs (inputFile : _) = runFile inputFile
 
 main :: IO ()
-main = someFunc
+main = getArgs >>= handleArgs
 
--- -f filename => run the file (in the interpreter, it will then be closed by the oef)
+-- filename => run the file (in the interpreter, it will then be closed by the oef)
 -- no args => interpreter
