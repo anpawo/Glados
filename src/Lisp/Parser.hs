@@ -7,34 +7,32 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Lisp.Parser
-  ( SExpr (..),
-    pack,
-    unpack,
-    Text,
-    Void,
+  ( -- main program
+    parseInput,
+    runParser,
+    parse,
+    -- unit-tests
+    SExpr (..),
     parseSInt,
     parseSSymbol,
     parseSString,
     parseSList,
     Parser,
-    runParser,
-    -- tests
+    -- ghci tests
     t,
     tt,
     char,
     eof,
     parseTest,
     many,
-    parseInput,
   )
 where
 
 import Control.Applicative ((<|>))
-import Data.Functor (($>))
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack)
 import Data.Void (Void)
 import Lisp.SExpression (SExpr (..))
-import Text.Megaparsec (MonadParsec (eof), Parsec, many, noneOf, oneOf, parseTest, runParser, some, try) -- TODO: skipSome
+import Text.Megaparsec (MonadParsec (eof), Parsec, many, noneOf, oneOf, parse, parseTest, runParser, some, try) -- TODO: skipSome
 import Text.Megaparsec.Char (char)
 import Text.Megaparsec.Char.Lexer (decimal, signed)
 
@@ -67,12 +65,9 @@ parseSList = SList <$> (char '(' *> ((:) <$> startExpr <*> many otherExpr) <* ma
 spaces :: Parser Char
 spaces = oneOf " \t\n\r\f\v"
 
-parseInput :: Parser [SExpr]
-parseInput = removeSpaces *> ((eof $> []) <|> ((:) <$> parseOneExp <*> parseInput))
+parseInput :: Parser SExpr
+parseInput = many spaces *> parseOneExp <* many spaces <* eof
   where
-    removeSpaces = many spaces
     parseOneExp = try parseSInt <|> try parseSSymbol <|> try parseSString <|> try parseSList
 
 -- TODO: add tests
-
--- parseComments :: Parser Void
