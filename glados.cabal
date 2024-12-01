@@ -25,11 +25,11 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
       Lisp.Ast
       Lisp.ErrorMessage
       Lisp.Parser
       Lisp.SExpression
+      Lisp.VirtualMachine
   other-modules:
       Paths_glados
   autogen-modules:
@@ -75,4 +75,5 @@ test-suite glados-test
     , glados
     , hspec
     , megaparsec
+    , text
   default-language: Haskell2010

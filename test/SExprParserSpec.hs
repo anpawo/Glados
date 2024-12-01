@@ -8,13 +8,14 @@
 module SExprParserSpec (spec) where
 
 import Data.Either (isLeft)
+import Data.Text (pack)
 import qualified Lisp.Parser as LP
 import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 import Text.Megaparsec.Error (errorBundlePretty)
 
 testParser :: LP.Parser LP.SExpr -> String -> Either String LP.SExpr
 testParser p input =
-  case LP.runParser p "" (LP.pack input) of
+  case LP.runParser p "" (pack input) of
     Left err -> Left (errorBundlePretty err) -- doesnt work well
     Right x -> Right x
 

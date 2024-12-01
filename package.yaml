@@ -63,3 +63,4 @@ tests:
     - glados
     - hspec
     - megaparsec
+    - text
