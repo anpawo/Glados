@@ -15,7 +15,7 @@ module Lisp.Ast
   )
 where
 
-import Lisp.ErrorMessage
+import Lisp.ErrorMessage (errDef, errFnDef, errVarDef)
 import Lisp.SExpression (SExpr (..), getSymbol)
 
 -- TODO: The Body is a single expression, we don't handle many expression
@@ -25,12 +25,11 @@ data Ast
   | TSymbol String
   | TString String
   | TBool Bool
+  | TVoid -- value of defines and missing defines
   | TVariable {varName :: String, varBody :: Ast}
   | TFunction {fnName :: String, fnArgs :: [String], defFnBody :: Ast}
   | TCall {fnName :: String, callFnBody :: Ast} -- TODO
   | TLambda -- TODO
-  -- TVoid
-  -- TList [Ast]
   deriving (Show)
 
 type AstError = String
@@ -71,7 +70,7 @@ defineVariable name value =
     Right x -> Right $ TVariable name x
     Left err -> Left err
 
--- The body function cannot be [TVoid, TDefine, TVariable]
+-- The body function cannot be [TVoid, TFunction, TVariable]
 -- tho, it should never be able to contain a void since void can only be affected to symbols
 defineFunction :: [SExpr] -> SExpr -> Either AstError Ast
 defineFunction argsSExpr body =
