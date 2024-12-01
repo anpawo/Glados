@@ -6,8 +6,6 @@
 -}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Redundant section" #-}
-
 module Lisp.Parser
   ( SExpr (..),
     pack,
@@ -20,11 +18,19 @@ module Lisp.Parser
     parseSList,
     Parser,
     runParser,
+    -- tests
     t,
+    tt,
+    char,
+    eof,
+    parseTest,
+    many,
+    parseInput,
   )
 where
 
 import Control.Applicative ((<|>))
+import Data.Functor (($>))
 import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
 import Lisp.SExpression (SExpr (..))
@@ -36,6 +42,9 @@ type Parser = Parsec Void Text
 
 t :: Parser SExpr -> String -> IO ()
 t p s = parseTest p (pack s)
+
+tt :: Parser [SExpr] -> String -> IO ()
+tt p s = parseTest p (pack s)
 
 parseSInt :: Parser SExpr
 parseSInt = SInt <$> signed mempty decimal
@@ -59,12 +68,10 @@ spaces :: Parser Char
 spaces = oneOf " \t\n\r\f\v"
 
 parseInput :: Parser [SExpr]
-parseInput = (:) <$> (removeSpaces *> eof *>) parseOneExp <*> parseInput
+parseInput = removeSpaces *> ((eof $> []) <|> ((:) <$> parseOneExp <*> parseInput))
   where
     removeSpaces = many spaces
     parseOneExp = try parseSInt <|> try parseSSymbol <|> try parseSString <|> try parseSList
-
--- TODO: fix this function
 
 -- TODO: add tests
 
