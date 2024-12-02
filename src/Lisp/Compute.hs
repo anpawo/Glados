@@ -5,7 +5,7 @@
 -- Compute
 -}
 
-module Lisp.Compute (testCompute) where
+module Lisp.Compute (testCompute, compute) where
 
 import Lisp.Ast (Ast (..))
 
@@ -17,19 +17,20 @@ import Lisp.Ast (Ast (..))
 --     return x
 
 -- compute func
-compute :: Ast -> Int
-compute (TInt n) = n
-compute (TSymbol _) = error "Symbol not resolved yet"
-compute (TString _) = error "Cannot compute strings directly"
-compute (TBool _) = error "Cannot compute booleans directly"
-compute TVoid = error "Cannot compute void"
-compute (TVariable _ varBody) = compute varBody -- if other expr
-compute (TFunction _ _ _) = error "Cannot compute functions directly"
-compute (TCall "+" [TInt x, TInt y]) = x + y
-compute (TCall "-" [TInt x, TInt y]) = x - y
-compute (TCall "*" [TInt x, TInt y]) = x * y
-compute (TCall "/" [TInt x, TInt y]) = x `div` y
-compute (TCall op _) = error ("Operation " ++ op ++ " not supported or wrong number of arguments")
+compute :: Ast -> Either String Ast
+compute (TInt n) = Right (TInt n)
+compute (TSymbol _) = Left "Symbol not resolved yet"
+compute (TString _) = Left "Cannot compute strings directly"
+compute (TBool _) = Left "Cannot compute booleans directly"
+compute TVoid = Left "Cannot compute void"
+compute (TVariable _ varBody) = compute varBody
+compute (TFunction _ _ _) = Left "Cannot compute functions directly"
+compute (TCall "+" [TInt x, TInt y]) = Right (TInt (x + y))
+compute (TCall "-" [TInt x, TInt y]) = Right (TInt (x - y))
+compute (TCall "*" [TInt x, TInt y]) = Right (TInt (x * y))
+compute (TCall "/" [TInt x, TInt 0]) = Left (show x ++ " can't be divided by 0")
+compute (TCall "/" [TInt x, TInt y]) = Right (TInt (x `div` y))
+compute (TCall op _) = Left ("Operation " ++ op ++ " not supported or wrong number of arguments")
 
 -- expl add
 testAddition :: Ast
