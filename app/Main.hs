@@ -7,13 +7,13 @@
 
 module Main (main) where
 
-import Lisp.VirtualMachine (interpreter, runFile)
+import Lisp.VirtualMachine (interpreter)
 import System.Environment (getArgs)
 
 -- could handle some debug flags
 handleArgs :: [String] -> IO ()
-handleArgs [] = interpreter []
-handleArgs (inputFile : _) = runFile inputFile
+handleArgs [] = interpreter [] ""
+handleArgs flags = print flags
 
 main :: IO ()
 main = getArgs >>= handleArgs
