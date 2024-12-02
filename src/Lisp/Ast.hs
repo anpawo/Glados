@@ -28,7 +28,7 @@ data Ast
   | TVoid -- value of defines and missing defines
   | TVariable {varName :: String, varBody :: Ast}
   | TFunction {fnName :: String, fnArgs :: [String], defFnBody :: Ast}
-  | TCall {fnName :: String, callFnBody :: Ast} -- TODO
+  | TCall {fnName :: String, callFnBody :: [Ast]} -- TODO
   | TLambda -- TODO
   deriving (Show)
 
