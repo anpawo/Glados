@@ -7,7 +7,7 @@
 
 module Main (main) where
 
-import Lisp.VirtualMachine (interpreter)
+import Lisp.Interpreter (interpreter)
 import System.Environment (getArgs)
 
 -- could handle some debug flags

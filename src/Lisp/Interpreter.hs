@@ -5,12 +5,12 @@
 -- Virtual Machine
 -}
 
-module Lisp.VirtualMachine (interpreter) where
+module Lisp.Interpreter (interpreter) where
 
 import Control.Exception (catch)
 import Control.Exception.Base (IOException)
 import Data.Text (pack)
-import Lisp.Ast (Ast)
+import Lisp.Ast (Ast, sexprToAST)
 import Lisp.Parser (parseInput, runParser)
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.IO (hFlush, stdout)
@@ -32,12 +32,12 @@ handleInput :: [Ast] -> String -> String -> IO ()
 handleInput ctx lastInput "" = interpreter ctx lastInput
 handleInput ctx lastInput currInput
   | isWaitingEnd totalInput = interpreter ctx totalInput
-  | otherwise = executeExpr ctx totalInput
+  | otherwise = execute ctx totalInput
   where
-    totalInput = lastInput ++ currInput
+    totalInput = lastInput ++ currInput -- TODO: add "\n"
 
 isWaitingEnd :: String -> Bool
-isWaitingEnd input = sameNumberParent input /= 0
+isWaitingEnd input = sameNumberParent input /= 0 -- TODO: should be higher than 0 else its an error because its a closing parenthesis
   where
     sameNumberParent :: String -> Int
     sameNumberParent "" = 0
@@ -48,7 +48,9 @@ isWaitingEnd input = sameNumberParent input /= 0
       (_ : rst) -> sameNumberParent rst
     sameNumberParent (_ : s) = 0 + sameNumberParent s
 
-executeExpr :: [Ast] -> String -> IO ()
-executeExpr ctx input = case runParser parseInput "" (pack input) of
+execute :: [Ast] -> String -> IO ()
+execute ctx input = case runParser parseInput "" (pack input) of
   Left err -> putStr (errorBundlePretty err) >> exitWith (ExitFailure 84)
-  Right expr -> putStrLn ("expr: " ++ show expr) >> interpreter ctx ""
+  Right expr -> case sexprToAST expr of
+    Left err -> putStr err >> exitWith (ExitFailure 84)
+    Right ast -> print ast >> interpreter ctx "" -- should execute and add the result to ctx or display it
