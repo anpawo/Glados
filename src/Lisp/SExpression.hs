@@ -14,9 +14,11 @@ data SExpr
   | SList [SExpr]
   deriving (Eq, Show)
 
-getSymbol :: SExpr -> Maybe String
-getSymbol (SSymbol x) = Just x
-getSymbol _ = Nothing
+type SExprError = String
+
+getSymbol :: SExpr -> Either SExprError String
+getSymbol (SSymbol x) = Right x
+getSymbol _ = Left "Expected Symbol"
 
 getString :: SExpr -> Maybe String
 getString (SString x) = Just x
