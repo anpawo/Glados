@@ -48,6 +48,14 @@ testMultiplication = TCall "*" [TInt 3, TInt 7]
 testDivision :: Ast
 testDivision = TCall "/" [TInt 20, TInt 4]
 
+-- expl int
+testInteger :: Ast
+testInteger = TInt 10
+
+-- expl int
+testVariable :: Ast
+testVariable = TVariable "Test" (TInt 185)
+
 -- fo,nction test
 testCompute :: IO ()
 testCompute = do
@@ -55,8 +63,12 @@ testCompute = do
   let substractionResult = compute testSubstraction
   let multiplicationResult = compute testMultiplication
   let divisionResult = compute testDivision
+  let intResult = compute testInteger
+  let variableResult = compute testVariable
   
   putStrLn $ "Result of addition: " ++ show additionResult
   putStrLn $ "Result of subtraction: " ++ show substractionResult
   putStrLn $ "Result of multiplication: " ++ show multiplicationResult
   putStrLn $ "Result of division: " ++ show divisionResult
+  putStrLn $ "Result of int: " ++ show intResult
+  putStrLn $ "Result of int: " ++ show variableResult
