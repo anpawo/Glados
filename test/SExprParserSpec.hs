@@ -7,7 +7,7 @@
 
 module SExprParserSpec (spec) where
 
-import Data.Either (isLeft)
+import Data.Either (isLeft, isRight)
 import Data.Text (pack)
 import qualified Lisp.Parser as LP
 import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
@@ -33,6 +33,14 @@ spec = do
       testParser LP.parseSInt "-1a2" `shouldBe` Right (LP.SInt (-1))
     it "+53a6" $
       testParser LP.parseSInt "+53a6" `shouldBe` Right (LP.SInt 53)
+    it "max Int" $
+      testParser LP.parseSInt "2147483647" `shouldBe` Right (LP.SInt 2147483647)
+    it "min Int" $
+      testParser LP.parseSInt "-2147483648" `shouldBe` Right (LP.SInt (-2147483648))
+    it "multiple leading zeros" $
+      testParser LP.parseSInt "000123" `shouldBe` Right (LP.SInt 123)
+    it "negative multiple leading zeros" $
+      testParser LP.parseSInt "-000123" `shouldBe` Right (LP.SInt (-123))
 
   describe "parse Int failure" $ do
     it "a" $
@@ -43,6 +51,8 @@ spec = do
       testParser LP.parseSInt "-a1" `shouldSatisfy` isLeft
     it "empty string" $
       testParser LP.parseSInt "" `shouldSatisfy` isLeft
+    it "integer with whitespace" $
+      testParser LP.parseSInt " 123 " `shouldSatisfy` isLeft
 
   -- Symbol
   describe "parse Symbol success" $ do
@@ -54,6 +64,8 @@ spec = do
       testParser LP.parseSSymbol "a2" `shouldBe` Right (LP.SSymbol "a2")
     it "*2+" $
       testParser LP.parseSSymbol "*2+" `shouldBe` Right (LP.SSymbol "*2+")
+    it "symbol with special characters" $
+      testParser LP.parseSSymbol "+-*/%&|^~!" `shouldBe` Right (LP.SSymbol "+-*/%&|^~!")
 
   describe "parse Symbol failure" $ do
     it "space" $
@@ -64,6 +76,8 @@ spec = do
       testParser LP.parseSSymbol "(" `shouldSatisfy` isLeft
     it "empty string" $
       testParser LP.parseSSymbol "" `shouldSatisfy` isLeft
+    it "symbol starting with number" $
+      testParser LP.parseSSymbol "1abc" `shouldSatisfy` isLeft
 
   -- String
   describe "parse String success" $ do
@@ -75,6 +89,10 @@ spec = do
       testParser LP.parseSString "\" 3 eme\"" `shouldBe` Right (LP.SString " 3 eme")
     it "\"empty string\"" $
       testParser LP.parseSString "\"\"" `shouldBe` Right (LP.SString "")
+    it "string with escaped quote" $
+      testParser LP.parseSString "\"hello \\\"world\\\"\"" `shouldBe` Right (LP.SString "hello \\")
+    it "string with newline escape" $
+      testParser LP.parseSString "\"hello\\nworld\"" `shouldBe` Right (LP.SString "hello\\nworld")
 
   describe "\"parse String failure\"" $ do
     it "\"" $
@@ -83,6 +101,10 @@ spec = do
       testParser LP.parseSString "\"number" `shouldSatisfy` isLeft
     it "number\"" $
       testParser LP.parseSString "number\"" `shouldSatisfy` isLeft
+    it "unescaped quote inside string" $
+      testParser LP.parseSString "\"hello\"world\"" `shouldSatisfy` isRight
+    it "unescaped quote inside list" $
+      testParser LP.parseSList "(\"hello\"world\")" `shouldSatisfy` isLeft
 
   -- List
   describe "parse List success" $ do
@@ -92,5 +114,24 @@ spec = do
       testParser LP.parseSList "( define(add x   y\t)(+ x\n y)   \r)" `shouldBe` Right (LP.SList [LP.SSymbol "define", LP.SList [LP.SSymbol "add", LP.SSymbol "x", LP.SSymbol "y"], LP.SList [LP.SSymbol "+", LP.SSymbol "x", LP.SSymbol "y"]])
     it "(define (add* x y) (* (+ x y) 2))" $
       testParser LP.parseSList "(define (add* x y) (* (+ x y) 2))" `shouldBe` Right (LP.SList [LP.SSymbol "define", LP.SList [LP.SSymbol "add*", LP.SSymbol "x", LP.SSymbol "y"], LP.SList [LP.SSymbol "*", LP.SList [LP.SSymbol "+", LP.SSymbol "x", LP.SSymbol "y"], LP.SInt 2]])
+    it "deeply nested lists" $
+      testParser LP.parseSList "(a (b (c (d (e)))))" `shouldBe` Right (LP.SList [LP.SSymbol "a", LP.SList [LP.SSymbol "b", LP.SList [LP.SSymbol "c", LP.SList [LP.SSymbol "d", LP.SList [LP.SSymbol "e"]]]]])
+    it "list with leading spaces" $
+      testParser LP.parseInput "  (a b c)" `shouldBe` Right (LP.SList [LP.SSymbol "a", LP.SSymbol "b", LP.SSymbol "c"])
+    it "list with trailing spaces" $
+      testParser LP.parseSList "(a b c)  " `shouldBe` Right (LP.SList [LP.SSymbol "a", LP.SSymbol "b", LP.SSymbol "c"])
+    it "list with leading spaces" $
+      testParser LP.parseSList "  (a b c)" `shouldSatisfy` isLeft
+    it "unclosed list" $
+      testParser LP.parseSList "(a b c" `shouldSatisfy` isLeft
+    it "extra closing parenthesis" $
+      testParser LP.parseInput "(a b c))" `shouldSatisfy` isLeft
+    it "mixed list with ints, symbols, and strings" $
+      testParser LP.parseSList "(123 \"hello\" world -456)" `shouldBe` Right (LP.SList [LP.SInt 123, LP.SString "hello", LP.SSymbol "world", LP.SInt (-456)])
+    it "list with invalid types" $
+      testParser LP.parseSList "(123 \"unclosed string  world -456)" `shouldSatisfy` isLeft
+
+
+
 
 -- need to finish this with the errors and more valid cases
