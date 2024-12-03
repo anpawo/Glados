@@ -27,9 +27,9 @@ library
   exposed-modules:
       Lisp.Ast
       Lisp.ErrorMessage
+      Lisp.Interpreter
       Lisp.Parser
       Lisp.SExpression
-      Lisp.VirtualMachine
   other-modules:
       Paths_glados
   autogen-modules:

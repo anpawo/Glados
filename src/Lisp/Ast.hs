@@ -4,99 +4,107 @@
 -- File description:
 -- AST
 -}
-{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
-{-# HLINT ignore "Use newtype instead of data" #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Lisp.Ast
   ( sexprToAST,
     Ast (..),
+    catchDefine,
   )
 where
 
-import Lisp.ErrorMessage (errDef, errFnDef, errVarDef)
+import Lisp.ErrorMessage
 import Lisp.SExpression (SExpr (..), getSymbol)
 
--- TODO: The Body is a single expression, we don't handle many expression
-
 data Ast
-  = TInt Int
-  | TSymbol String
-  | TString String
+  = -- basic types && consumed by execute to display
+    TInt Int
   | TBool Bool
-  | TVoid -- value of defines and missing defines
-  | TVariable {varName :: String, varBody :: Ast}
-  | TFunction {fnName :: String, fnArgs :: [String], defFnBody :: Ast}
-  | TCall {fnName :: String, callFnBody :: Ast} -- TODO
-  | TLambda -- TODO
-  deriving (Show)
+  | TVoid
+  | TString String
+  | -- lambda type (functions{args, body})
+    TLambda {lambdaArgs :: [String], lambdaBody :: Ast}
+  | -- what will be kept inside the ctx
+    TFunction {fncName :: String, fncArgs :: [String], fncBody :: Ast} -- value is lambda
+  | TVariable {varName :: String, varValue :: Ast} -- value is any other basic type (any function call should be executed on the fly)
+  | -- consumed by execute to add some ctx
+    TDefineFunction {defFncName :: String, defFncBody :: Ast}
+  | TDefineVariable {defVarName :: String, defVarBody :: Ast}
+  | -- consumed by execute to display
+    TIf {ifCond :: Ast, ifThen :: Ast, ifElse :: Ast}
+  | TFunctionCall {callName :: Ast, callArgs :: [Ast]}
+  | TVariableCall String
+  deriving (Eq, Show)
 
 type AstError = String
 
-instance Eq Ast where
-  -- (==) :: Ast -> Ast -> Bool
-  TInt x == TInt y = x == y
-  TSymbol x == TSymbol y = x == y
-  TString x == TString y = x == y
-  TBool x == TBool y = x == y
-  -- TVoid == TVoid = True
-  -- TList x == TList y = x == y
-  TVariable name1 body1 == TVariable name2 body2 = name1 == name2 && body1 == body2
-  TFunction fnName1 fnArgs1 fnBody1 == TFunction fnName2 fnArgs2 fnBody2 = fnName1 == fnName2 && fnArgs1 == fnArgs2 && fnBody1 == fnBody2
-  TCall fnName1 body1 == TCall fnName2 body2 = fnName1 == fnName2 && body1 == body2
-  TLambda == TLambda = True
-  _ == _ = False
-
 sexprToAST :: SExpr -> Either AstError Ast
-sexprToAST (SInt x) = Right (TInt x)
-sexprToAST (SSymbol "#t") = Right (TBool True)
-sexprToAST (SSymbol "#f") = Right (TBool False)
-sexprToAST (SSymbol x) = Right (TSymbol x)
-sexprToAST (SString x) = Right (TString x)
+sexprToAST (SInt x) = Right $ TInt x
+sexprToAST (SSymbol "#t") = Right $ TBool True
+sexprToAST (SSymbol "#f") = Right $ TBool False
+sexprToAST (SSymbol x) = Right $ TVariableCall x
+sexprToAST (SString x) = Right $ TString x
 sexprToAST (SList x) = handleList x
 
 handleList :: [SExpr] -> Either AstError Ast
 handleList (SSymbol "define" : rst) = handleDefine rst
+handleList (SSymbol "if" : rst) = handleIf rst
+handleList (SSymbol "lambda" : rst) = handleLambda rst
 handleList functionNameAndArgs = handleCall functionNameAndArgs
 
+-- Lambda
+handleLambda :: [SExpr] -> Either AstError Ast
+handleLambda [] = Left $ errLambda "missing arguments and body"
+handleLambda [_] = Left $ errLambda "missing body"
+handleLambda [SList args, body] = TLambda <$> mapM getSymbol args <*> sexprToAST body
+handleLambda _ = Left $ errLambda "expected (lambda (args) body)"
+
+-- Lambda
+
+-- If
+handleIf :: [SExpr] -> Either AstError Ast
+handleIf [a, b, c] = TIf <$> (sexprToAST a >>= trueIfTruthy) <*> sexprToAST b <*> sexprToAST c
+handleIf [a, b] = TIf <$> (sexprToAST a >>= trueIfTruthy) <*> sexprToAST b <*> Right TVoid
+handleIf _ = Left $ errIf "expected (if cond then else)"
+
+trueIfTruthy :: Ast -> Either String Ast
+trueIfTruthy TInt {} = Right $ TBool True
+trueIfTruthy TVoid {} = Right $ TBool True
+trueIfTruthy TString {} = Right $ TBool True
+trueIfTruthy TLambda {} = Right $ TBool True
+trueIfTruthy TDefineFunction {} = Left errDefCtx
+trueIfTruthy TDefineVariable {} = Left errDefCtx
+trueIfTruthy x = Right x
+
+-- If
+
+-- Call
+--    the whole call process is in the execution of the statement
+--    not during its creation
 handleCall :: [SExpr] -> Either AstError Ast
-handleCall _ = Left "todo"
+handleCall [] = Left $ errCall "missing function name"
+handleCall (name : args) = (TFunctionCall <$> sexprToAST name <*> mapM sexprToAST args) >>= Right
 
-defineVariable :: String -> SExpr -> Either AstError Ast
-defineVariable name value =
-  case sexprToAST value of
-    Right x | isDefine x -> Left $ errVarDef $ "cannot contain another define" ++ show x
-    Right x -> Right $ TVariable name x
-    Left err -> Left err
+-- Call
 
--- The body function cannot be [TVoid, TFunction, TVariable]
--- tho, it should never be able to contain a void since void can only be affected to symbols
-defineFunction :: [SExpr] -> SExpr -> Either AstError Ast
-defineFunction argsSExpr body =
-  case mapM getSymbol argsSExpr of
-    Just allArgs@(name : args)
-      | not (any (`elem` keywords) allArgs) -> case sexprToAST body of
-          Right x | isDefine x -> Left $ errFnDef $ "the body cannot contain a define:" ++ show x
-          Right validBody -> Right $ TFunction name args validBody
-          Left err -> Left $ errFnDef $ show err
-      | otherwise -> Left $ errFnDef "variable's name cannot be Keywords"
-    Just [] -> Left $ errFnDef "missing function name."
-    Nothing -> Left $ errFnDef $ "variables' name must be Symbols." ++ show body
-
+-- Define
 handleDefine :: [SExpr] -> Either AstError Ast
-handleDefine [] = Left $ errDef "missing args and body."
-handleDefine [_] = Left $ errDef "missing body."
-handleDefine (SInt x : _) = Left $ errDef $ "args must be Symbols: " ++ show x
-handleDefine (SString x : _) = Left $ errDef $ "args must be Symbols: " ++ show x
-handleDefine [SList args, body] = defineFunction args body
-handleDefine [SSymbol name, value] = defineVariable name value
-handleDefine (_ : l : r) = Left $ errDef $ "the body must contain only one expression: " ++ show l ++ " " ++ show r
+handleDefine [] = Left $ errVarDef "missing variable name"
+-- Void Variable Definition
+handleDefine [SSymbol name] = Right $ TDefineVariable name TVoid
+-- Lambda Definition
+handleDefine [SSymbol name, SList [SSymbol "lambda", SList args, body]] = TDefineFunction <$> Right name <*> (TLambda <$> mapM getSymbol args <*> sexprToAST body) -- TODO: should create a lambda
+-- Variable Definition
+handleDefine [SSymbol name, body] = TDefineVariable <$> Right name <*> sexprToAST body
+-- Function Definition
+handleDefine [SList (SSymbol name : args), body] = TDefineFunction <$> Right name <*> (TLambda <$> mapM getSymbol args <*> sexprToAST body)
+handleDefine _ = Left errDef
 
-keywords :: [String]
-keywords = ["define", "lambda"]
+-- Define
 
-isDefine :: Ast -> Bool
-isDefine (TFunction {}) = True
-isDefine (TVariable {}) = True
-isDefine _ = False
+-- Will be used in execute or else
+catchDefine :: Either AstError Ast -> Either AstError Ast
+catchDefine (Right (TDefineVariable {})) = Left errDefCtx
+catchDefine (Right (TDefineFunction {})) = Left errDefCtx
+catchDefine (Right (TVariableCall "define")) = Left errDefCtx
+catchDefine x = x
