@@ -10,14 +10,16 @@ module Lisp.Interpreter (interpreter) where
 import Control.Exception (catch)
 import Control.Exception.Base (IOException)
 import Data.Text (pack)
-import Lisp.Ast (Ast, sexprToAST)
+import Lisp.Ast (Ast (..), Ctx, sexprToAST)
+import Lisp.Display (astToString)
+import Lisp.Evaluate (evalAst)
 import Lisp.Parser (parseInput, runParser)
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.IO (hFlush, stdout)
 import Text.Megaparsec (errorBundlePretty)
 
 -- parseSExpr -> Ast -> Execute -> Return and display result except void
-interpreter :: [Ast] -> String -> IO ()
+interpreter :: Ctx -> String -> IO ()
 interpreter ctx lastInput = catch runInterpreter eofHandler
   where
     runInterpreter = printPrompt lastInput >> getLine >>= handleInput ctx lastInput
@@ -28,16 +30,21 @@ interpreter ctx lastInput = catch runInterpreter eofHandler
     eofHandler :: IOException -> IO ()
     eofHandler _ = return ()
 
-handleInput :: [Ast] -> String -> String -> IO ()
+handleInput :: Ctx -> String -> String -> IO ()
 handleInput ctx lastInput "" = interpreter ctx lastInput
+handleInput ctx lastInput (':' : currInput) = handleCommand ctx currInput >> interpreter ctx lastInput
 handleInput ctx lastInput currInput
   | isWaitingEnd totalInput = interpreter ctx totalInput
   | otherwise = execute ctx totalInput
   where
-    totalInput = lastInput ++ currInput -- TODO: add "\n"
+    totalInput = lastInput ++ "\n" ++ currInput
+
+handleCommand :: Ctx -> String -> IO ()
+handleCommand ctx "ctx" = print ctx
+handleCommand _ _ = putStrLn "Invalid Command"
 
 isWaitingEnd :: String -> Bool
-isWaitingEnd input = sameNumberParent input /= 0 -- TODO: should be higher than 0 else its an error because its a closing parenthesis
+isWaitingEnd input = sameNumberParent input > 0
   where
     sameNumberParent :: String -> Int
     sameNumberParent "" = 0
@@ -48,9 +55,13 @@ isWaitingEnd input = sameNumberParent input /= 0 -- TODO: should be higher than 
       (_ : rst) -> sameNumberParent rst
     sameNumberParent (_ : s) = 0 + sameNumberParent s
 
-execute :: [Ast] -> String -> IO ()
+execute :: Ctx -> String -> IO ()
 execute ctx input = case runParser parseInput "" (pack input) of
   Left err -> putStr (errorBundlePretty err) >> exitWith (ExitFailure 84)
   Right expr -> case sexprToAST expr of
-    Left err -> putStr err >> exitWith (ExitFailure 84)
-    Right ast -> print ast >> interpreter ctx "" -- should execute and add the result to ctx or display it
+    Left err -> putStrLn err >> exitWith (ExitFailure 84)
+    Right ast -> do
+      case evalAst ctx ast of
+        Left err -> putStrLn err >> exitWith (ExitFailure 84)
+        Right (TVoid, newCtx) -> interpreter newCtx ""
+        Right (astToDisplay, newCtx) -> putStrLn (astToString newCtx astToDisplay) >> interpreter newCtx ""
