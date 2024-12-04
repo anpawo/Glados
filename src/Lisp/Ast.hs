@@ -10,6 +10,7 @@ module Lisp.Ast
   ( sexprToAST,
     Ast (..),
     catchDefine,
+    Ctx,
   )
 where
 
@@ -25,11 +26,11 @@ data Ast
   | -- lambda type (functions{args, body})
     TLambda {lambdaArgs :: [String], lambdaBody :: Ast}
   | -- what will be kept inside the ctx
-    TFunction {fncName :: String, fncArgs :: [String], fncBody :: Ast} -- value is lambda
-  | TVariable {varName :: String, varValue :: Ast} -- value is any other basic type (any function call should be executed on the fly)
+    TFunction {fncName :: String, fncBody :: Ast} -- value is lambda
+  | TVariable {varName :: String, varValue :: Ast} -- value is basic type (any function call should be executed during the define)
   | -- consumed by execute to add some ctx
-    TDefineFunction {defFncName :: String, defFncBody :: Ast}
-  | TDefineVariable {defVarName :: String, defVarBody :: Ast}
+    TDefineFunction {defFncName :: String, defFncBody :: Ast} -- Lambda or If
+  | TDefineVariable {defVarName :: String, defVarBody :: Ast} -- Basic Type
   | -- consumed by execute to display
     TIf {ifCond :: Ast, ifThen :: Ast, ifElse :: Ast}
   | TFunctionCall {callName :: Ast, callArgs :: [Ast]}
@@ -37,6 +38,8 @@ data Ast
   deriving (Eq, Show)
 
 type AstError = String
+
+type Ctx = [Ast]
 
 sexprToAST :: SExpr -> Either AstError Ast
 sexprToAST (SInt x) = Right $ TInt x
