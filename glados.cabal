@@ -26,7 +26,9 @@ source-repository head
 library
   exposed-modules:
       Lisp.Ast
+      Lisp.Display
       Lisp.ErrorMessage
+      Lisp.Evaluate
       Lisp.Interpreter
       Lisp.Parser
       Lisp.SExpression
