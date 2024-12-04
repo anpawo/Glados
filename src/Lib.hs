@@ -16,6 +16,27 @@ import Text.Read
 
 data SExpr = Sint Int | Sstring String | Slist [SExpr] deriving (Show)
 
+data Ast = Define String Ast
+         | Sum Ast Ast
+         | Minus Ast Ast
+         | Var String
+         | Let String Ast Ast
+         | Aint Int
+         deriving (Show)
+
+sexprToAST :: SExpr -> Maybe Ast
+sexprToAST (exp)
+    | Sstring s <- exp = sstringToAST exp
+    | Sint i <- exp = Just (Aint i)
+    | Sstring s <- exp = Just (Var s)
+
+sstringToAST :: SExpr -> Maybe Ast
+sstringToAST (exp)
+    | Sstring ('d':'e':'f':'i':'n':'e':' ':s) <- exp = Just (Define s (fromJust (sexprToAST (Sstring s))))
+    | Sstring s <- exp = Just (Var s)
+    | otherwise = Nothing
+
+
 getSymbol :: SExpr -> Maybe String
 getSymbol (exp)
     | Sstring s <- exp = Just s
