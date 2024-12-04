@@ -8,7 +8,7 @@
 module Lisp.Evaluate (evalAst) where
 
 import Data.List (find)
-import Lisp.Ast (Ast (..), Ctx)
+import Lisp.Ast (Ast (..), Ctx, trueIfTruthy)
 
 type EvalErr = String
 
@@ -26,16 +26,26 @@ evalAst ctx x@(TBool {}) = Right (x, ctx)
 evalAst ctx x@TVoid = Right (x, ctx)
 evalAst ctx x@(TString {}) = Right (x, ctx)
 evalAst ctx TLambda {} = Right (TLambda [] TVoid, ctx) -- TODO: compute the lambda
-evalAst ctx (TVariableCall name) = retrieveVariable ctx name >>= evalAst ctx
+evalAst ctx (TVariableCall name) = (,) <$> (retrieveVariable ctx name >>= Right) <*> Right ctx
 evalAst ctx (TDefineVariable name body) = (,) <$> Right TVoid <*> defineVariable ctx name body
--- evalAst _ (TDefineFunction {}) = print "" >> return (Left "todo")
--- evalAst _ (TIf {}) = print "" >> return (Left "todo")
+evalAst ctx (TDefineFunction name body) = (,) <$> Right TVoid <*> defineFunction ctx name body
+evalAst ctx (TIf c t e) = (,) <$> ifEval ctx c t e <*> Right ctx
 -- evalAst _ (TFunctionCall {}) = print "" >> return (Left "todo")
 evalAst _ _ = Left "todo: evalAst"
 
 eval' :: Ctx -> Ast -> Either EvalErr (Ast, Ctx)
-eval' ctx x@(TLambda {}) = {-- evalAst--} (,) <$> functionEval ctx x <*> Right ctx
+eval' ctx x@(TLambda {}) = (,) <$> functionEval ctx x <*> Right ctx
 eval' ctx x = evalAst ctx x
+
+ifEval :: Ctx -> Ast -> Ast -> Ast -> Either EvalErr Ast
+ifEval ctx c t e =
+  case evalAst ctx c >>= (Right . trueIfTruthy . fst) of
+    Right (TBool True) -> evalAst ctx t >>= Right . fst
+    Right _ -> evalAst ctx e >>= Right . fst
+    Left err -> Left err
+
+-- \| trueIfTruthy condition = ""
+-- \| otherwise = ""
 
 functionEval :: Ctx -> Ast -> Either EvalErr Ast
 functionEval _ _ = Left "todo: functionEval"
@@ -55,5 +65,10 @@ sameName _ _ = False
 
 defineVariable :: Ctx -> String -> Ast -> Either EvalErr Ctx
 defineVariable ctx name body = (:) <$> (eval' newCtx body >>= (Right . TVariable name . fst)) <*> Right newCtx
+  where
+    newCtx = filter (not . sameName name) ctx
+
+defineFunction :: Ctx -> String -> Ast -> Either EvalErr Ctx
+defineFunction ctx name body = (:) <$> Right (TFunction name body) <*> Right newCtx
   where
     newCtx = filter (not . sameName name) ctx
