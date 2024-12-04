@@ -9,8 +9,9 @@
 module Lisp.Ast
   ( sexprToAST,
     Ast (..),
-    catchDefine,
     Ctx,
+    catchDefine,
+    trueIfTruthy,
   )
 where
 
@@ -23,17 +24,17 @@ data Ast
   | TBool Bool
   | TVoid
   | TString String
+  | TIf {ifCond :: Ast, ifThen :: Ast, ifElse :: Ast}
   | -- lambda type (functions{args, body})
     TLambda {lambdaArgs :: [String], lambdaBody :: Ast}
   | -- what will be kept inside the ctx
     TFunction {fncName :: String, fncBody :: Ast} -- value is lambda
-  | TVariable {varName :: String, varValue :: Ast} -- value is basic type (any function call should be executed during the define)
+  | TVariable {varName :: String, varValue :: Ast} -- value is basic type (any function call or if should be executed during the define)
   | -- consumed by execute to add some ctx
     TDefineFunction {defFncName :: String, defFncBody :: Ast} -- Lambda or If
   | TDefineVariable {defVarName :: String, defVarBody :: Ast} -- Basic Type
   | -- consumed by execute to display
-    TIf {ifCond :: Ast, ifThen :: Ast, ifElse :: Ast}
-  | TFunctionCall {callName :: Ast, callArgs :: [Ast]}
+    TFunctionCall {callName :: Ast, callArgs :: [Ast]}
   | TVariableCall String
   deriving (Eq, Show)
 
@@ -41,6 +42,7 @@ type AstError = String
 
 type Ctx = [Ast]
 
+-- TODO: prevent edge cases like (define x (define y))
 sexprToAST :: SExpr -> Either AstError Ast
 sexprToAST (SInt x) = Right $ TInt x
 sexprToAST (SSymbol "#t") = Right $ TBool True
@@ -66,18 +68,16 @@ handleLambda _ = Left $ errLambda "expected (lambda (args) body)"
 
 -- If
 handleIf :: [SExpr] -> Either AstError Ast
-handleIf [a, b, c] = TIf <$> (sexprToAST a >>= trueIfTruthy) <*> sexprToAST b <*> sexprToAST c
-handleIf [a, b] = TIf <$> (sexprToAST a >>= trueIfTruthy) <*> sexprToAST b <*> Right TVoid
+handleIf [a, b, c] = TIf <$> (sexprToAST a >>= Right . trueIfTruthy) <*> sexprToAST b <*> sexprToAST c
+handleIf [a, b] = TIf <$> (sexprToAST a >>= Right . trueIfTruthy) <*> sexprToAST b <*> Right TVoid
 handleIf _ = Left $ errIf "expected (if cond then else)"
 
-trueIfTruthy :: Ast -> Either String Ast
-trueIfTruthy TInt {} = Right $ TBool True
-trueIfTruthy TVoid {} = Right $ TBool True
-trueIfTruthy TString {} = Right $ TBool True
-trueIfTruthy TLambda {} = Right $ TBool True
-trueIfTruthy TDefineFunction {} = Left errDefCtx
-trueIfTruthy TDefineVariable {} = Left errDefCtx
-trueIfTruthy x = Right x
+trueIfTruthy :: Ast -> Ast
+trueIfTruthy TInt {} = TBool True
+trueIfTruthy TVoid {} = TBool True
+trueIfTruthy TString {} = TBool True
+trueIfTruthy TLambda {} = TBool True
+trueIfTruthy x = x
 
 -- If
 
@@ -95,8 +95,8 @@ handleDefine :: [SExpr] -> Either AstError Ast
 handleDefine [] = Left $ errVarDef "missing variable name"
 -- Void Variable Definition
 handleDefine [SSymbol name] = Right $ TDefineVariable name TVoid
--- Lambda Definition
-handleDefine [SSymbol name, SList [SSymbol "lambda", SList args, body]] = TDefineFunction <$> Right name <*> (TLambda <$> mapM getSymbol args <*> sexprToAST body) -- TODO: should create a lambda
+-- Function Definition
+handleDefine [SSymbol name, SList [SSymbol "lambda", SList args, body]] = TDefineFunction <$> Right name <*> (TLambda <$> mapM getSymbol args <*> sexprToAST body)
 -- Variable Definition
 handleDefine [SSymbol name, body] = TDefineVariable <$> Right name <*> sexprToAST body
 -- Function Definition
