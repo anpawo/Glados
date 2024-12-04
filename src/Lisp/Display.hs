@@ -19,5 +19,5 @@ astToString _ (TBool True) = "#t"
 astToString _ (TBool False) = "#f"
 astToString _ (TInt x) = show x
 astToString _ (TString x) = show x
-astToString _ (TLambda name _) = procedure name -- Lambda can be without any arguments
-astToString _ _ = ""
+astToString _ (TLambda name _) = procedure name -- TODO: Lambda can be without any arguments
+astToString _ _ = "todo: astToString (but should not happend)"
