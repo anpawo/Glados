@@ -160,7 +160,15 @@ builtinDiv ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
   where
     evalBuiltin (_, TInt 0) = Left "Error: Division by 0"
     evalBuiltin (_, TFloat 0.0) = Left "Error: Division by 0"
-    evalBuiltin (TInt a, TInt b) = Right $ TInt (a `div` b)
+    evalBuiltin (TInt a, TInt b)
+      | fromIntegral intdiv == fltdiv = Right $ TInt intdiv
+      | otherwise = Right $ TFloat fltdiv
+      where
+        intdiv :: Int
+        intdiv = a `div` b
+
+        fltdiv :: Float
+        fltdiv = fromIntegral a / fromIntegral b
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a / b)
     evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a / fromIntegral b)
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a / b)
