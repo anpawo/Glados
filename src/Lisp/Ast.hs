@@ -21,6 +21,7 @@ import Lisp.SExpression (SExpr (..), getSymbol)
 data Ast
   = -- basic types && consumed by execute to display
     TInt Int
+  | TFloat Float
   | TBool Bool
   | TVoid
   | TString String
@@ -45,6 +46,7 @@ type Ctx = [Ast]
 -- TODO: prevent edge cases like (define x (define y))
 sexprToAST :: SExpr -> Either AstError Ast
 sexprToAST (SInt x) = Right $ TInt x
+sexprToAST (SFloat x) = Right $ TFloat x
 sexprToAST (SSymbol "#t") = Right $ TBool True
 sexprToAST (SSymbol "#f") = Right $ TBool False
 sexprToAST (SSymbol x) = Right $ TVariableCall x

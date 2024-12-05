@@ -34,7 +34,7 @@ import Data.Void (Void)
 import Lisp.SExpression (SExpr (..))
 import Text.Megaparsec (MonadParsec (eof), Parsec, many, noneOf, oneOf, parse, parseTest, runParser, some, try) -- TODO: skipSome
 import Text.Megaparsec.Char (char)
-import Text.Megaparsec.Char.Lexer (decimal, signed)
+import Text.Megaparsec.Char.Lexer (decimal, float, signed)
 
 type Parser = Parsec Void Text
 
@@ -46,6 +46,9 @@ tt p s = parseTest p (pack s)
 
 parseSInt :: Parser SExpr
 parseSInt = SInt <$> signed mempty decimal
+
+parseSFloat :: Parser SExpr
+parseSFloat = SFloat <$> signed mempty float
 
 parseSSymbol :: Parser SExpr
 parseSSymbol = SSymbol <$> ((:) <$> noneOf startForbid <*> many (noneOf otherForbid))
@@ -59,8 +62,8 @@ parseSString = SString <$> (char '"' *> many (noneOf "\"") <* char '"') -- can b
 parseSList :: Parser SExpr
 parseSList = SList <$> (char '(' *> ((:) <$> startExpr <*> many otherExpr) <* many spaces <* char ')')
   where
-    startExpr = many spaces *> (try parseSInt <|> try parseSSymbol <|> parseSString <|> parseSList)
-    otherExpr = try (some spaces *> (try parseSInt <|> try parseSSymbol <|> try parseSString)) <|> try (many spaces *> parseSList)
+    startExpr = many spaces *> (try parseSFloat <|> try parseSInt <|> try parseSSymbol <|> parseSString <|> parseSList)
+    otherExpr = try (some spaces *> (try parseSFloat <|> try parseSInt <|> try parseSSymbol <|> try parseSString)) <|> try (many spaces *> parseSList)
 
 spaces :: Parser Char
 spaces = oneOf " \t\n\r\f\v"
@@ -68,6 +71,6 @@ spaces = oneOf " \t\n\r\f\v"
 parseInput :: Parser SExpr
 parseInput = many spaces *> parseOneExp <* many spaces <* eof
   where
-    parseOneExp = try parseSInt <|> try parseSSymbol <|> try parseSString <|> try parseSList
+    parseOneExp = try parseSFloat <|> try parseSInt <|> try parseSSymbol <|> try parseSString <|> try parseSList
 
 -- TODO: add tests

@@ -5,10 +5,11 @@
 -- SExpr
 -}
 
-module Lisp.SExpression (SExpr (..), getSymbol, getInteger, getList, printTree, getString) where
+module Lisp.SExpression (SExpr (..), getSymbol, getInteger, getList, printTree, getString, getFloat) where
 
 data SExpr
   = SInt Int
+  | SFloat Float
   | SSymbol String
   | SString String
   | SList [SExpr]
@@ -28,12 +29,17 @@ getInteger :: SExpr -> Maybe Int
 getInteger (SInt x) = Just x
 getInteger _ = Nothing
 
+getFloat :: SExpr -> Maybe Float
+getFloat (SFloat x) = Just x
+getFloat _ = Nothing
+
 getList :: SExpr -> Maybe [SExpr]
 getList (SList x) = Just x
 getList _ = Nothing
 
 printTree :: SExpr -> Maybe String
 printTree (SInt x) = Just ("Int " ++ show x)
+printTree (SFloat x) = Just ("Float " ++ show x)
 printTree (SSymbol x) = Just ("Symbol " ++ x)
 printTree (SString x) = Just ("String " ++ x)
 printTree (SList x) = case mapM printTree x of
