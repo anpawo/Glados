@@ -34,7 +34,7 @@ data Ast
     TDefineFunction {defFncName :: String, defFncBody :: Ast} -- Lambda or If
   | TDefineVariable {defVarName :: String, defVarBody :: Ast} -- Basic Type
   | -- consumed by execute to display
-    TFunctionCall {callName :: Ast, callArgs :: [Ast]}
+    TFunctionCall {callName :: String, callArgs :: [Ast]}
   | TVariableCall String
   deriving (Eq, Show)
 
@@ -86,7 +86,7 @@ trueIfTruthy x = x
 --    not during its creation
 handleCall :: [SExpr] -> Either AstError Ast
 handleCall [] = Left $ errCall "missing function name"
-handleCall (name : args) = (TFunctionCall <$> sexprToAST name <*> mapM sexprToAST args) >>= Right
+handleCall (name : args) = (TFunctionCall <$> getSymbol name <*> mapM sexprToAST args) >>= Right
 
 -- Call
 
