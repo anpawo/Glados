@@ -5,7 +5,7 @@
 -- ErrorMessage
 -}
 
-module Lisp.ErrorMessage (errDef, errFnDef, errVarDef, errCall, errDefCtx, errIf, errLambda) where
+module Lisp.ErrorMessage (errDef, errFnDef, errVarDef, errCall, errDefCtx, errIf, errLambda, errNonProcedure, errImpossible, errUnboundVar, errNumberArgs, errTypeArgs) where
 
 errIf :: String -> String
 errIf err = "Error: Invalid if: " ++ err
@@ -27,3 +27,18 @@ errFnDef err = "Error: Invalid function definition: " ++ err
 
 errVarDef :: String -> String
 errVarDef err = "Error: Invalid variable definition: " ++ err
+
+errUnboundVar :: String -> String
+errUnboundVar name = "Error: variable " ++ name ++ " is not bound"
+
+errImpossible :: String
+errImpossible = "Impossible: This should never happend."
+
+errNonProcedure :: String -> String
+errNonProcedure name = "Error: attempt to apply non-procedure " ++ name
+
+errNumberArgs :: String -> String
+errNumberArgs name = "Error: Invalid number of arguments in call: " ++ name
+
+errTypeArgs :: String -> String -> String
+errTypeArgs name t = "Error: Invalid type of arguments, expected " ++ t ++ ", in call: " ++ name
