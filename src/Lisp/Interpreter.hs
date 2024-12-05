@@ -14,7 +14,6 @@ import Lisp.Ast (Ast (..), Ctx, sexprToAST)
 import Lisp.Display (astToString)
 import Lisp.Evaluate (evalAst)
 import Lisp.Parser (parseInput, runParser)
-import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.IO (hFlush, stdout)
 import Text.Megaparsec (errorBundlePretty)
 
@@ -57,11 +56,11 @@ isWaitingEnd input = sameNumberParent input > 0
 
 execute :: Ctx -> String -> IO ()
 execute ctx input = case runParser parseInput "" (pack input) of
-  Left err -> putStr (errorBundlePretty err) >> exitWith (ExitFailure 84)
+  Left err -> putStr (errorBundlePretty err) >> interpreter ctx ""
   Right expr -> case sexprToAST expr of
-    Left err -> putStrLn err >> exitWith (ExitFailure 84)
+    Left err -> putStrLn err >> interpreter ctx ""
     Right ast -> do
       case evalAst ctx ast of
-        Left err -> putStrLn err >> exitWith (ExitFailure 84)
+        Left err -> putStrLn err >> interpreter ctx ""
         Right (TVoid, newCtx) -> interpreter newCtx ""
         Right (astToDisplay, newCtx) -> putStrLn (astToString newCtx astToDisplay) >> interpreter newCtx ""
