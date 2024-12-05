@@ -9,7 +9,7 @@ module Lisp.Evaluate (evalAst) where
 
 import Data.Fixed (mod')
 import Data.List (elemIndex, find, nub)
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Lisp.Ast (Ast (..), Ctx, trueIfTruthy)
 import Lisp.ErrorMessage
   ( errImpossible,
@@ -24,14 +24,15 @@ type EvalErr = String
 type Args = [Ast]
 
 evalAst :: Ctx -> Ast -> Either EvalErr (Ast, Ctx)
-evalAst _ (TFunction {}) = Left errImpossible -- only part of the context
-evalAst _ (TVariable {}) = Left errImpossible -- only part of the context
+evalAst _ (TFunction {}) = Left $ errImpossible "eval of TFunction" -- only part of the context
+evalAst _ (TVariable {}) = Left $ errImpossible "eval of TVariable" -- only part of the context
 evalAst ctx x@(TInt {}) = Right (x, ctx)
 evalAst ctx x@(TFloat {}) = Right (x, ctx)
 evalAst ctx x@(TBool {}) = Right (x, ctx)
 evalAst ctx x@TVoid = Right (x, ctx)
 evalAst ctx x@(TString {}) = Right (x, ctx)
-evalAst ctx TLambda {} = Right (TLambda [] TVoid, ctx) -- TODO: compute the lambda
+evalAst ctx TLambda {} = Right (TLambda [] TVoid, ctx) -- this is a lambda assigned to nothing
+evalAst ctx (TLambdaFly args lambda) = (,) <$> lambdaEval ctx args lambda <*> Right ctx -- this is a lambda called when created
 evalAst ctx (TDefineVariable name body) = (,) <$> Right TVoid <*> defineVariable ctx name body
 evalAst ctx (TDefineFunction name body) = (,) <$> Right TVoid <*> defineFunction ctx name body
 evalAst ctx (TIf c t e) = (,) <$> ifEval ctx c t e <*> Right ctx
@@ -51,7 +52,7 @@ retrieveVariable ctx name =
     Nothing -> Left $ errUnboundVar name
     Just (TVariable _ val) -> Right val
     Just (TFunction name' _) -> Right (TLambda [name'] TVoid) -- handles the procedure message but is a little trick. may be removed.
-    _ -> Left errImpossible
+    _ -> Left $ errImpossible "we found the variable but its not there anymore"
 
 sameName :: String -> Ast -> Bool
 sameName name (TVariable name' _) = name == name'
@@ -71,7 +72,7 @@ defineFunction ctx name body = (:) <$> Right (TFunction name body) <*> Right new
 lambdaEval :: Ctx -> Args -> Ast -> Either EvalErr Ast
 lambdaEval _ eargs (TLambda args _) | length eargs /= length args = Left $ errNumberArgs "lambda"
 lambdaEval ctx eargs (TLambda args body) = combineContext ctx eargs args body >>= (`evalAst` body) >>= (Right . fst)
-lambdaEval _ _ _ = Left errImpossible
+lambdaEval _ eargs ast = Left $ errImpossible $ "lambdaeval without a lambda: " ++ show eargs ++ ", " ++ show ast
 
 combineContext :: Ctx -> Args -> [String] -> Ast -> Either EvalErr Ctx
 combineContext ctx eargs args ast = updateCtxWSymbol ctx eargs args symbols
@@ -128,7 +129,7 @@ functionEval ctx name args =
     Nothing -> Left $ errUnboundVar name
     Just (TVariable {}) -> Left $ errNonProcedure name
     Just (TFunction _ lambda) -> lambdaEval ctx args lambda
-    _ -> Left errImpossible
+    _ -> Left $ errImpossible "we found the variable but it's not there anymore"
 
 builtinEq :: Ctx -> Args -> Either EvalErr Ast
 builtinEq ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
@@ -209,3 +210,10 @@ builtinMod ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a `mod'` b)
     evalBuiltin _ = Left $ errTypeArgs "mod" "int or float"
 builtinMod _ _ = Left $ errNumberArgs "mod"
+
+-- TODO:
+-- Doc
+-- Ci (release)
+-- Tests
+-- Fix all TODO
+-- Better Error Handling (no define inside anything)
