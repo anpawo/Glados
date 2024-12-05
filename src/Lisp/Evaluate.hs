@@ -9,8 +9,15 @@ module Lisp.Evaluate (evalAst) where
 
 import Data.Fixed (mod')
 import Data.List (elemIndex, find, nub)
+import Debug.Trace (trace)
 import Lisp.Ast (Ast (..), Ctx, trueIfTruthy)
 import Lisp.ErrorMessage
+  ( errImpossible,
+    errNonProcedure,
+    errNumberArgs,
+    errTypeArgs,
+    errUnboundVar,
+  )
 
 type EvalErr = String
 
@@ -73,15 +80,31 @@ combineContext ctx eargs args ast = updateCtxWSymbol ctx eargs args symbols
 
 updateCtxWSymbol :: Ctx -> Args -> [String] -> [String] -> Either EvalErr Ctx
 updateCtxWSymbol ctx _ _ [] = Right ctx
-updateCtxWSymbol ctx eargs args (s : symbols) = case elemIndex s args of
-  Nothing -> updateCtxWSymbol ctx eargs args symbols
-  Just index -> case eargs !! index of
-    x@(TLambda {}) -> updateCtxWSymbol (TFunction s x : newCtx) eargs args symbols
-    x -> case evalAst ctx x of
-      Left err -> Left err
-      Right (v, _) -> updateCtxWSymbol (TVariable s v : newCtx) eargs args symbols
-    where
-      newCtx = filter (not . sameName s) ctx
+updateCtxWSymbol ctx eargs args (s : symbols) =
+  case elemIndex s args of
+    Nothing -> updateCtxWSymbol ctx eargs args symbols
+    Just index -> case eargs !! index of
+      x@(TLambda {}) -> updateCtxWSymbol (TFunction s x : newCtx) eargs args symbols
+      (TVariableCall name) | isFunction ctx name -> updateCtxWSymbol (TFunction s (findFunction ctx name) : newCtx) eargs args symbols
+      x -> case evalAst ctx x of
+        Left err -> Left err
+        Right (v, _) -> updateCtxWSymbol (TVariable s v : newCtx) eargs args symbols
+      where
+        newCtx = filter (not . sameName s) ctx
+
+findFunction :: Ctx -> String -> Ast
+findFunction [] _ = TVoid
+findFunction ((TFunction name' body) : rst) name
+  | name == name' = body
+  | otherwise = findFunction rst name
+findFunction (_ : rst) name = findFunction rst name
+
+isFunction :: Ctx -> String -> Bool
+isFunction [] _ = False
+isFunction ((TFunction name' _) : rst) name
+  | name == name' = True
+  | otherwise = isFunction rst name
+isFunction (_ : rst) name = isFunction rst name
 
 retrieveAllSymbols :: Ast -> [String]
 retrieveAllSymbols (TVariableCall name) = [name]
