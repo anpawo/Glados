@@ -4,4 +4,4 @@
 (f1orf2 #t 1 add1 add2)
 (f1orf2 #f 1 add1 add2)
 (f1orf2 #t 1 (lambda (x) (+ x 1)) add2)
-(f1orf2 #f 1 (lambda (x) (+ x 1)) (lambda (x) (+ x 2)))
+(f1orf2 #f 1 add1 (lambda (x) (+ x 2)))
