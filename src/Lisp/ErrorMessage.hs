@@ -31,8 +31,8 @@ errVarDef err = "Error: Invalid variable definition: " ++ err
 errUnboundVar :: String -> String
 errUnboundVar name = "Error: variable " ++ name ++ " is not bound"
 
-errImpossible :: String
-errImpossible = "Impossible: This should never happend."
+errImpossible :: String -> String
+errImpossible err = "Impossible: This should never happend:" ++ err
 
 errNonProcedure :: String -> String
 errNonProcedure name = "Error: attempt to apply non-procedure " ++ name
