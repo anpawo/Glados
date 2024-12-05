@@ -26,6 +26,7 @@ data Ast
   | TVoid
   | TString String
   | TIf {ifCond :: Ast, ifThen :: Ast, ifElse :: Ast}
+  | TLambdaFly {givenArgs :: [Ast], lBody :: Ast} -- Lambda body
   | -- lambda type (functions{args, body})
     TLambda {lambdaArgs :: [String], lambdaBody :: Ast}
   | -- what will be kept inside the ctx
@@ -76,6 +77,7 @@ handleIf _ = Left $ errIf "expected (if cond then else)"
 
 trueIfTruthy :: Ast -> Ast
 trueIfTruthy TInt {} = TBool True
+trueIfTruthy TFloat {} = TBool True
 trueIfTruthy TVoid {} = TBool True
 trueIfTruthy TString {} = TBool True
 trueIfTruthy TLambda {} = TBool True
@@ -88,6 +90,7 @@ trueIfTruthy x = x
 --    not during its creation
 handleCall :: [SExpr] -> Either AstError Ast
 handleCall [] = Left $ errCall "missing function name"
+handleCall (x@(SList _) : args) = (TLambdaFly <$> mapM sexprToAST args <*> sexprToAST x) >>= Right
 handleCall (name : args) = (TFunctionCall <$> getSymbol name <*> mapM sexprToAST args) >>= Right
 
 -- Call
