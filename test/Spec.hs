@@ -5,14 +5,12 @@
 -- Spec
 --
 
+-- import AstSpec (spec)
+import SExprParserSpec (spec)
 import Test.Hspec (describe, hspec)
-import TestTemplateSpec (spec)
-
--- We will use Hspec for unit tests.
--- Main of the tests.
--- Call each test suite here.
--- Every test suite must be named "<TestSuiteName>Spec.hs" according to what it tests.
 
 main :: IO ()
 main = hspec $ do
-  describe "Template-Test" TestTemplateSpec.spec
+  describe "Parsing String to SExpr" SExprParserSpec.spec
+
+--   -- describe "Ast" AstSpec.spec

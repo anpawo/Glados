@@ -2,9 +2,9 @@ name:                glados
 version:             0.1.0.0
 github:              "githubuser/glados"
 license:             BSD-3-Clause
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2024 Author name here"
+author:              "Marius Rousset"
+maintainer:          "github/anpawo"
+copyright:           "2024 Marius Rousset"
 
 extra-source-files:
 - README.md
@@ -35,6 +35,9 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+    - megaparsec
+    - text
 
 executables:
   glados-exe:
@@ -46,6 +49,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - glados
+    - megaparsec
 
 tests:
   glados-test:
@@ -58,3 +62,5 @@ tests:
     dependencies:
     - glados
     - hspec
+    - megaparsec
+    - text

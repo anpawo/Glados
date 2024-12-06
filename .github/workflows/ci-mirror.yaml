@@ -10,9 +10,9 @@ env:
 
 jobs:
   push-to-mirror:
+    if: ${{ github.repository == vars.SOURCE_REPO_NAME }}
+
     runs-on: ubuntu-latest
-    
-    if: ${{ github.repository == 'anpawo/Glados' }}
 
     steps:
       - name: Checkout the repo

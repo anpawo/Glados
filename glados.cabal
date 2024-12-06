@@ -9,9 +9,9 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/glados#readme>
 homepage:       https://github.com/githubuser/glados#readme
 bug-reports:    https://github.com/githubuser/glados/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2024 Author name here
+author:         Marius Rousset
+maintainer:     github/anpawo
+copyright:      2024 Marius Rousset
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
@@ -25,7 +25,13 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Lisp.Ast
+      Lisp.Display
+      Lisp.ErrorMessage
+      Lisp.Evaluate
+      Lisp.Interpreter
+      Lisp.Parser
+      Lisp.SExpression
   other-modules:
       Paths_glados
   autogen-modules:
@@ -35,6 +41,8 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , megaparsec
+    , text
   default-language: Haskell2010
 
 executable glados-exe
@@ -49,13 +57,15 @@ executable glados-exe
   build-depends:
       base >=4.7 && <5
     , glados
+    , megaparsec
   default-language: Haskell2010
 
 test-suite glados-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      TestTemplateSpec
+      AstSpec
+      SExprParserSpec
       Paths_glados
   autogen-modules:
       Paths_glados
@@ -66,4 +76,6 @@ test-suite glados-test
       base >=4.7 && <5
     , glados
     , hspec
+    , megaparsec
+    , text
   default-language: Haskell2010
