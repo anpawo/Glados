@@ -1,0 +1,39 @@
+[test.greater_than]
+cmd = "../glados < ../test/input/gt.scm"
+stdout = """glados> ......> ......> ......> ......> ......> ......> ......> ......> glados> #t
+glados> #f
+glados> #f
+glados> """
+
+[test.define_variable]
+cmd = "../glados < ../test/input/define_variable.scm"
+stdout = """glados> glados> 21
+glados> """
+
+[test.define_function]
+cmd = "../glados < ../test/input/define_function.scm"
+stdout = """glados> glados> 21
+glados> """
+
+[test.if]
+cmd = "../glados < ../test/input/if.scm"
+stdout = """glados> glados> ......> ......> 21
+glados> """
+
+[test.facto]
+cmd = "../glados < ../test/input/facto.scm"
+stdout = """glados> ......> ......> ......> ......> glados> 3628800
+glados> """
+
+[test.lambda]
+cmd = "../glados < ../test/input/lambda.scm"
+stdout = """glados> glados> glados> glados> 2
+glados> 3
+glados> 2
+glados> 3
+glados> """
+
+[test.lambda_fly]
+cmd = "../glados < ../test/input/lambda_fly.scm"
+stdout = """glados> 3
+glados> """

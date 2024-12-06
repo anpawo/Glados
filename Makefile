@@ -44,9 +44,8 @@ unit-tests:
 
 
 .PHONY: functionnal-tests
-functionnal-tests:
-	stack clean
-	@ echo "not implemented yet"
+functionnal-tests: re
+	vangelis ./test/tests.toml --diff
 
 
 .PHONY: coverage
