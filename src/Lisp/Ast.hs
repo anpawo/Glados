@@ -21,6 +21,7 @@ import Lisp.SExpression (SExpr (..), getSymbol)
 data Ast
   = -- basic types && consumed by execute to display
     TInt Int
+  | TFraction {fNumerator :: Int, fDenumerator :: Int}
   | TFloat Float
   | TBool Bool
   | TVoid

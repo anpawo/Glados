@@ -18,6 +18,7 @@ astToString _ TVoid = "void"
 astToString _ (TBool True) = "#t"
 astToString _ (TBool False) = "#f"
 astToString _ (TInt x) = show x
+astToString _ (TFraction n d) = show n ++ "/" ++ show d
 astToString _ (TFloat x) = show x
 astToString _ (TString x) = show x
 astToString _ (TLambda name _) = procedure name -- TODO: Lambda can be without any arguments

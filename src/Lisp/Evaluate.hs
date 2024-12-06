@@ -4,6 +4,7 @@
 -- File description:
 -- Evaluate
 -}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module Lisp.Evaluate (evalAst) where
 
@@ -27,6 +28,7 @@ evalAst :: Ctx -> Ast -> Either EvalErr (Ast, Ctx)
 evalAst _ (TFunction {}) = Left $ errImpossible "eval of TFunction" -- only part of the context
 evalAst _ (TVariable {}) = Left $ errImpossible "eval of TVariable" -- only part of the context
 evalAst ctx x@(TInt {}) = Right (x, ctx)
+evalAst ctx x@(TFraction {}) = Right (x, ctx)
 evalAst ctx x@(TFloat {}) = Right (x, ctx)
 evalAst ctx x@(TBool {}) = Right (x, ctx)
 evalAst ctx x@TVoid = Right (x, ctx)
@@ -115,7 +117,7 @@ retrieveAllSymbols _ = []
 
 functionEval :: Ctx -> String -> Args -> Either EvalErr Ast
 functionEval ctx "eq?" args = builtinEq ctx args
-functionEval ctx "==" args = builtinEq ctx args
+functionEval ctx "=" args = builtinEq ctx args
 functionEval ctx "<" args = builtinLT ctx args
 functionEval ctx "+" args = builtinAdd ctx args
 functionEval ctx "-" args = builtinSub ctx args
@@ -123,7 +125,7 @@ functionEval ctx "*" args = builtinMul ctx args
 functionEval ctx "div" args = builtinDiv ctx args
 functionEval ctx "/" args = builtinDiv ctx args
 functionEval ctx "mod" args = builtinMod ctx args
-functionEval ctx "//" args = builtinMod ctx args
+functionEval ctx "%" args = builtinMod ctx args
 functionEval ctx name args =
   case find (sameName name) ctx of
     Nothing -> Left $ errUnboundVar name
@@ -131,52 +133,91 @@ functionEval ctx name args =
     Just (TFunction _ lambda) -> lambdaEval ctx args lambda
     _ -> Left $ errImpossible "we found the variable but it's not there anymore"
 
+simpl :: Ast -> Ast
+simpl (TFraction n1 d1)
+  | d2 == 1 = TInt n2
+  | n2 == 0 = TInt 0
+  | otherwise = TFraction n2 d2
+  where
+    n2 = n1 `div` pgcd
+    d2 = d1 `div` pgcd
+    pgcd = gcd n1 d1
+
+flt :: Ast -> Float
+flt (TFraction n d) = fromIntegral n / fromIntegral d
+flt (TInt x) = fromIntegral x
+
 builtinEq :: Ctx -> Args -> Either EvalErr Ast
 builtinEq ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
   where
-    evalBuiltin (TInt a, TFloat b) = Right $ TBool (fromIntegral a == b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TBool (a == fromIntegral b)
+    evalBuiltin (a@(TInt {}), b@(TFraction {})) = Right $ TBool (flt a == flt b)
+    evalBuiltin (a@(TFraction {}), b@(TInt {})) = Right $ TBool (flt a == flt b)
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TBool (flt a == b)
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TBool (a == flt b)
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TBool (flt a == b)
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TBool (a == flt b)
     evalBuiltin (a, b) = Right $ TBool (a == b)
 builtinEq _ _ = Left $ errNumberArgs "eq?"
 
 builtinLT :: Ctx -> Args -> Either EvalErr Ast
 builtinLT ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
   where
+    evalBuiltin (TFraction n1 d1, TFraction n2 d2) = Right $ TBool (n1 * d2 < d1 * n2)
+    evalBuiltin (TFraction n1 d1, TInt n2) = Right $ TBool (n1 < d1 * n2)
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TBool (flt a < b)
     evalBuiltin (TInt a, TInt b) = Right $ TBool (a < b)
+    evalBuiltin (TInt n1, TFraction n2 d2) = Right $ TBool (n1 * d2 < n2)
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TBool (flt a < b)
     evalBuiltin (TFloat a, TFloat b) = Right $ TBool (a < b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TBool (a < fromIntegral b)
-    evalBuiltin (TInt a, TFloat b) = Right $ TBool (fromIntegral a < b)
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TBool (a < flt b)
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TBool (a < flt b)
     evalBuiltin _ = Left $ errTypeArgs "<" "bool"
 builtinLT _ _ = Left $ errNumberArgs "<"
 
+-- TODO: here continue fraction
 builtinAdd :: Ctx -> Args -> Either EvalErr Ast
 builtinAdd ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
   where
+    evalBuiltin (TFraction n1 d1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * d2 + d1 * n2) (d1 * d2)
+    evalBuiltin (TFraction n1 d1, TInt n2) = Right $ simpl $ TFraction (n1 + d1 * n2) d1
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TFloat $ flt a + b
     evalBuiltin (TInt a, TInt b) = Right $ TInt (a + b)
+    evalBuiltin (TInt n1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * d2 + n2) d2
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TFloat (flt a + b)
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a + b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a + fromIntegral b)
-    evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a + b)
-    evalBuiltin _ = Left $ errTypeArgs "+" "int or float"
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TFloat (a + flt b)
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TFloat (a + flt b)
+    evalBuiltin _ = Left $ errTypeArgs "+" "int/float/fraction"
 builtinAdd _ _ = Left $ errNumberArgs "+"
 
 builtinSub :: Ctx -> Args -> Either EvalErr Ast
 builtinSub ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
   where
+    evalBuiltin (TFraction n1 d1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * d2 - d1 * n2) (d1 * d2)
+    evalBuiltin (TFraction n1 d1, TInt n2) = Right $ simpl $ TFraction (n1 - d1 * n2) d1
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TFloat $ flt a - b
     evalBuiltin (TInt a, TInt b) = Right $ TInt (a - b)
+    evalBuiltin (TInt n1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * d2 - n2) d2
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TFloat (flt a - b)
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a - b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a - fromIntegral b)
-    evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a - b)
-    evalBuiltin _ = Left $ errTypeArgs "-" "int or float"
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TFloat (a - flt b)
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TFloat (a - flt b)
+    evalBuiltin _ = Left $ errTypeArgs "-" "int/float/fraction"
 builtinSub _ _ = Left $ errNumberArgs "-"
 
 builtinMul :: Ctx -> Args -> Either EvalErr Ast
 builtinMul ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
   where
-    evalBuiltin (TInt a, TInt b) = Right $ TInt (a * b)
-    evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a * b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a * fromIntegral b)
-    evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a * b)
-    evalBuiltin _ = Left $ errTypeArgs "*" "int or float"
+    evalBuiltin (TFraction n1 d1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * d2) (n2 * d1)
+    evalBuiltin (TFraction n1 d1, TInt n2) = Right $ simpl $ TFraction (n1 - d1 * n2) d1
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TFloat $ flt a - b
+    evalBuiltin (TInt a, TInt b) = Right $ TInt (a - b)
+    evalBuiltin (TInt n1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * d2 - n2) d2
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TFloat (flt a - b)
+    evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a - b)
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TFloat (a - flt b)
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TFloat (a - flt b)
+    evalBuiltin _ = Left $ errTypeArgs "*" "int/float/fraction"
 builtinMul _ _ = Left $ errNumberArgs "*"
 
 builtinDiv :: Ctx -> Args -> Either EvalErr Ast
@@ -184,19 +225,22 @@ builtinDiv ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
   where
     evalBuiltin (_, TInt 0) = Left "Error: Division by 0"
     evalBuiltin (_, TFloat 0.0) = Left "Error: Division by 0"
-    evalBuiltin (TInt a, TInt b)
-      | fromIntegral intdiv == fltdiv = Right $ TInt intdiv
-      | otherwise = Right $ TFloat fltdiv
+    -- Fraction Creation
+    evalBuiltin (TInt n, TInt d)
+      | intdiv * d == n = Right $ TInt intdiv
+      | otherwise = Right $ simpl $ TFraction n d
       where
-        intdiv :: Int
-        intdiv = a `div` b
-
-        fltdiv :: Float
-        fltdiv = fromIntegral a / fromIntegral b
+        intdiv = n `div` d
+    -- Fraction Creation
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TFloat (flt a / b)
+    evalBuiltin (TInt n1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * n2) d2
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a / b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a / fromIntegral b)
-    evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a / b)
-    evalBuiltin _ = Left $ errTypeArgs "div" "int or float"
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TFloat (a / flt b)
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TFloat (a / flt b)
+    evalBuiltin (TFraction n1 d1, TFraction n2 d2) = Right $ simpl $ TFraction (n1 * n2) (d1 * d2)
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TFloat (flt a / b)
+    evalBuiltin (TFraction n1 d1, TInt n2) = Right $ simpl $ TFraction (n1 * n2) d1
+    evalBuiltin _ = Left $ errTypeArgs "div" "int/float/fraction"
 builtinDiv _ _ = Left $ errNumberArgs "div"
 
 builtinMod :: Ctx -> Args -> Either EvalErr Ast
@@ -205,10 +249,15 @@ builtinMod ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (_, TInt 0) = Left "Error: Division by 0"
     evalBuiltin (_, TFloat 0.0) = Left "Error: Division by 0"
     evalBuiltin (TInt a, TInt b) = Right $ TInt (a `mod` b)
+    evalBuiltin (a@(TInt {}), TFloat b) = Right $ TFloat (flt a `mod'` b)
+    evalBuiltin (a@(TInt {}), b@(TFraction {})) = Right $ TFloat (flt a `mod'` flt b)
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a `mod'` b)
-    evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a `mod'` fromIntegral b)
-    evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a `mod'` b)
-    evalBuiltin _ = Left $ errTypeArgs "mod" "int or float"
+    evalBuiltin (TFloat a, b@(TInt {})) = Right $ TFloat (a `mod'` flt b)
+    evalBuiltin (TFloat a, b@(TFraction {})) = Right $ TFloat (a `mod'` flt b)
+    evalBuiltin (a@(TFraction {}), b@(TFraction {})) = Right $ TFloat (flt a `mod'` flt b)
+    evalBuiltin (a@(TFraction {}), b@(TInt {})) = Right $ TFloat (flt a `mod'` flt b)
+    evalBuiltin (a@(TFraction {}), TFloat b) = Right $ TFloat (flt a `mod'` b)
+    evalBuiltin _ = Left $ errTypeArgs "mod" "int/float/fraction"
 builtinMod _ _ = Left $ errNumberArgs "mod"
 
 -- TODO:
