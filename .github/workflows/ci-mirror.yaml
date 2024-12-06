@@ -26,7 +26,6 @@ jobs:
       - name: Remove the workflows # to prevent them from being called on the epitech repo
         run: |
           git filter-repo --path .github/workflows/ --invert-paths
-          git push --force
       
       - name: Ls to check if the workflows were deleted
         run : |
