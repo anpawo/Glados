@@ -174,7 +174,6 @@ builtinLT ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx
     evalBuiltin _ = Left $ errTypeArgs "<" "bool"
 builtinLT _ _ = Left $ errNumberArgs "<"
 
--- TODO: here continue fraction
 builtinAdd :: Ctx -> Args -> Either EvalErr Ast
 builtinAdd ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
   where
