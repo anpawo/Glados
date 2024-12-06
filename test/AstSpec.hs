@@ -21,6 +21,6 @@ spec = do
 
   describe "simple function definition" $ do
     it "no argument and default int value" $
-      sexprToAST (SList [SSymbol "define", SList [SSymbol "int5"], SInt 5]) `shouldBe` Right (TFunction "int5" [] (TInt 5))
+      sexprToAST (SList [SSymbol "define", SList [SSymbol "int5"], SInt 5]) `shouldBe` Right (TFunction "int5" (TLambda [] (TInt 5)))
     it "one argument and default int value" $
-      sexprToAST (SList [SSymbol "define", SList [SSymbol "int5", SSymbol "unusedVar"], SInt 5]) `shouldBe` Right (TFunction "int5" ["unusedVar"] (TInt 5))
+      sexprToAST (SList [SSymbol "define", SList [SSymbol "int5", SSymbol "unusedVar"], SInt 5]) `shouldBe` Right (TFunction "int5" (TLambda ["unusedVar"] (TInt 5)))
