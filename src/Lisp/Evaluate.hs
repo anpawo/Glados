@@ -115,7 +115,7 @@ retrieveAllSymbols _ = []
 
 functionEval :: Ctx -> String -> Args -> Either EvalErr Ast
 functionEval ctx "eq?" args = builtinEq ctx args
-functionEval ctx "==" args = builtinEq ctx args
+functionEval ctx "=" args = builtinEq ctx args
 functionEval ctx "<" args = builtinLT ctx args
 functionEval ctx "+" args = builtinAdd ctx args
 functionEval ctx "-" args = builtinSub ctx args
@@ -123,13 +123,20 @@ functionEval ctx "*" args = builtinMul ctx args
 functionEval ctx "div" args = builtinDiv ctx args
 functionEval ctx "/" args = builtinDiv ctx args
 functionEval ctx "mod" args = builtinMod ctx args
-functionEval ctx "//" args = builtinMod ctx args
+functionEval ctx "string-append" args = builtinStringAppend ctx args
 functionEval ctx name args =
   case find (sameName name) ctx of
     Nothing -> Left $ errUnboundVar name
     Just (TVariable {}) -> Left $ errNonProcedure name
     Just (TFunction _ lambda) -> lambdaEval ctx args lambda
     _ -> Left $ errImpossible "we found the variable but it's not there anymore"
+
+builtinStringAppend :: Ctx -> Args -> Either EvalErr Ast
+builtinStringAppend ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
+  where
+    evalBuiltin (TString a, TString b) = Right $ TString $ a ++ b
+    evalBuiltin _ = Left $ errTypeArgs "string-append" "string"
+builtinStringAppend _ _ = Left $ errNumberArgs "string-append"
 
 builtinEq :: Ctx -> Args -> Either EvalErr Ast
 builtinEq ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
@@ -217,3 +224,4 @@ builtinMod _ _ = Left $ errNumberArgs "mod"
 -- Tests
 -- Fix all TODO
 -- Better Error Handling (no define inside anything)
+-- add the fractions
