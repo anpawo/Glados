@@ -132,11 +132,13 @@ functionEval ctx name args =
     _ -> Left $ errImpossible "we found the variable but it's not there anymore"
 
 builtinStringAppend :: Ctx -> Args -> Either EvalErr Ast
-builtinStringAppend ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
+builtinStringAppend ctx args = consumeString args >>= (Right . TString)
   where
-    evalBuiltin (TString a, TString b) = Right $ TString $ a ++ b
-    evalBuiltin _ = Left $ errTypeArgs "string-append" "string"
-builtinStringAppend _ _ = Left $ errNumberArgs "string-append"
+    consumeString [] = Right ""
+    consumeString (x : rst) = case evalAst ctx x of
+      Right (TString s, _) -> (++) <$> Right s <*> consumeString rst
+      Right _ -> Left $ errTypeArgs "string-append" "string"
+      Left err -> Left err
 
 builtinEq :: Ctx -> Args -> Either EvalErr Ast
 builtinEq ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
