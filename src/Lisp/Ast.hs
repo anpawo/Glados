@@ -55,11 +55,16 @@ sexprToAST (SString x) = Right $ TString x
 sexprToAST (SList x) = handleList x
 
 handleList :: [SExpr] -> Either AstError Ast
-handleList (SSymbol "define" : rst) = handleDefine rst
-handleList (SSymbol "if" : rst) = handleIf rst
-handleList (SSymbol "lambda" : rst) = handleLambda rst
-handleList (SSymbol "cond" : rst) = handleCond rst
-handleList functionNameAndArgs = handleCall functionNameAndArgs
+handleList (SSymbol "define" : rst) = failIfDefine rst >> handleDefine rst
+handleList (SSymbol "if" : rst) = failIfDefine rst >> handleIf rst
+handleList (SSymbol "lambda" : rst) = failIfDefine rst >> handleLambda rst
+handleList (SSymbol "cond" : rst) = failIfDefine rst >> handleCond rst
+handleList functionNameAndArgs = failIfDefine functionNameAndArgs >> handleCall functionNameAndArgs
+
+failIfDefine :: [SExpr] -> Either AstError ()
+failIfDefine (SSymbol "define" : _) = Left errDef
+failIfDefine (SList x : rst) = failIfDefine x >> failIfDefine rst
+failIfDefine _ = Right ()
 
 -- Cond
 handleCond :: [SExpr] -> Either AstError Ast
