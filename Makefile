@@ -48,6 +48,12 @@ functionnal-tests: re
 	vangelis ./test/tests.toml --diff
 
 
+.PHONY: test
+test: re
+test: unit-tests
+test: functionnal-tests
+
+
 .PHONY: coverage
 coverage:
 	stack test --coverage
