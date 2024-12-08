@@ -11,7 +11,6 @@ module Lisp.Ast
     Ast (..),
     Ctx,
     catchDefine,
-    trueIfTruthy,
   )
 where
 
@@ -71,17 +70,9 @@ handleLambda _ = Left $ errLambda "expected (lambda (args) body)"
 
 -- If
 handleIf :: [SExpr] -> Either AstError Ast
-handleIf [a, b, c] = TIf <$> (sexprToAST a >>= Right . trueIfTruthy) <*> sexprToAST b <*> sexprToAST c
-handleIf [a, b] = TIf <$> (sexprToAST a >>= Right . trueIfTruthy) <*> sexprToAST b <*> Right TVoid
+handleIf [a, b, c] = TIf <$> sexprToAST a <*> sexprToAST b <*> sexprToAST c
+handleIf [a, b] = TIf <$> sexprToAST a <*> sexprToAST b <*> Right TVoid
 handleIf _ = Left $ errIf "expected (if cond then else)"
-
-trueIfTruthy :: Ast -> Ast
-trueIfTruthy TInt {} = TBool True
-trueIfTruthy TFloat {} = TBool True
-trueIfTruthy TVoid {} = TBool True
-trueIfTruthy TString {} = TBool True
-trueIfTruthy TLambda {} = TBool True
-trueIfTruthy x = x
 
 -- If
 

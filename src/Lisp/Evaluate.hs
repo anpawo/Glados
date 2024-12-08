@@ -10,7 +10,7 @@ module Lisp.Evaluate (evalAst) where
 import Data.Fixed (mod')
 import Data.List (elemIndex, find, nub)
 -- import Debug.Trace (trace)
-import Lisp.Ast (Ast (..), Ctx, trueIfTruthy)
+import Lisp.Ast (Ast (..), Ctx)
 import Lisp.ErrorMessage
   ( errImpossible,
     errNonProcedure,
@@ -35,15 +35,15 @@ evalAst ctx TLambda {} = Right (TLambda [] TVoid, ctx) -- this is a lambda assig
 evalAst ctx (TLambdaFly args lambda) = (,) <$> lambdaEval ctx args lambda <*> Right ctx -- this is a lambda called when created
 evalAst ctx (TDefineVariable name body) = (,) <$> Right TVoid <*> defineVariable ctx name body
 evalAst ctx (TDefineFunction name body) = (,) <$> Right TVoid <*> defineFunction ctx name body
-evalAst ctx (TIf c t e) = (,) <$> ifEval ctx c t e <*> Right ctx
+evalAst ctx (TIf cond_ then_ else_) = (,) <$> ifEval ctx cond_ then_ else_ <*> Right ctx
 evalAst ctx (TVariableCall name) = (,) <$> (retrieveVariable ctx name >>= Right) <*> Right ctx
 evalAst ctx (TFunctionCall name args) = (,) <$> functionEval ctx name args <*> Right ctx
 
 ifEval :: Ctx -> Ast -> Ast -> Ast -> Either EvalErr Ast
-ifEval ctx c t e =
-  case evalAst ctx c >>= (Right . trueIfTruthy . fst) of
-    Right (TBool True) -> evalAst ctx t >>= Right . fst
-    Right _ -> evalAst ctx e >>= Right . fst
+ifEval ctx cond_ then_ else_ =
+  case evalAst ctx cond_ >>= (Right . fst) of
+    Right (TBool False) -> evalAst ctx else_ >>= Right . fst
+    Right _ -> evalAst ctx then_ >>= Right . fst
     Left err -> Left err
 
 retrieveVariable :: Ctx -> String -> Either EvalErr Ast
@@ -115,6 +115,7 @@ retrieveAllSymbols _ = []
 
 functionEval :: Ctx -> String -> Args -> Either EvalErr Ast
 functionEval ctx "eq?" args = builtinEq ctx args
+functionEval ctx "zero?" args = builtinZero ctx args
 functionEval ctx "=" args = builtinEq ctx args
 functionEval ctx "<" args = builtinLT ctx args
 functionEval ctx "+" args = builtinAdd ctx args
@@ -139,6 +140,18 @@ builtinStringAppend ctx args = consumeString args >>= (Right . TString)
       Right (TString s, _) -> (++) <$> Right s <*> consumeString rst
       Right _ -> Left $ errTypeArgs "string-append" "string"
       Left err -> Left err
+
+builtinZero :: Ctx -> Args -> Either EvalErr Ast
+builtinZero ctx [x] = (evalAst ctx x >>= (Right . fst)) >>= evalBuiltin
+  where
+    evalBuiltin (TInt a)
+      | a == 0 = Right $ TBool True
+      | otherwise = Right $ TBool False
+    evalBuiltin (TFloat a)
+      | a == 0.0 = Right $ TBool True
+      | otherwise = Right $ TBool False
+    evalBuiltin _ = Left $ errTypeArgs "zero?" "number"
+builtinZero _ _ = Left $ errNumberArgs "zero?"
 
 builtinEq :: Ctx -> Args -> Either EvalErr Ast
 builtinEq ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
@@ -165,7 +178,7 @@ builtinAdd ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a + b)
     evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a + fromIntegral b)
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a + b)
-    evalBuiltin _ = Left $ errTypeArgs "+" "int or float"
+    evalBuiltin _ = Left $ errTypeArgs "+" "number"
 builtinAdd _ _ = Left $ errNumberArgs "+"
 
 builtinSub :: Ctx -> Args -> Either EvalErr Ast
@@ -175,7 +188,7 @@ builtinSub ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a - b)
     evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a - fromIntegral b)
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a - b)
-    evalBuiltin _ = Left $ errTypeArgs "-" "int or float"
+    evalBuiltin _ = Left $ errTypeArgs "-" "number"
 builtinSub _ _ = Left $ errNumberArgs "-"
 
 builtinMul :: Ctx -> Args -> Either EvalErr Ast
@@ -185,7 +198,7 @@ builtinMul ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a * b)
     evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a * fromIntegral b)
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a * b)
-    evalBuiltin _ = Left $ errTypeArgs "*" "int or float"
+    evalBuiltin _ = Left $ errTypeArgs "*" "number"
 builtinMul _ _ = Left $ errNumberArgs "*"
 
 builtinDiv :: Ctx -> Args -> Either EvalErr Ast
@@ -205,7 +218,7 @@ builtinDiv ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a / b)
     evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a / fromIntegral b)
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a / b)
-    evalBuiltin _ = Left $ errTypeArgs "div" "int or float"
+    evalBuiltin _ = Left $ errTypeArgs "div" "number"
 builtinDiv _ _ = Left $ errNumberArgs "div"
 
 builtinMod :: Ctx -> Args -> Either EvalErr Ast
@@ -217,7 +230,7 @@ builtinMod ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TFloat a, TFloat b) = Right $ TFloat (a `mod'` b)
     evalBuiltin (TFloat a, TInt b) = Right $ TFloat (a `mod'` fromIntegral b)
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a `mod'` b)
-    evalBuiltin _ = Left $ errTypeArgs "mod" "int or float"
+    evalBuiltin _ = Left $ errTypeArgs "mod" "number"
 builtinMod _ _ = Left $ errNumberArgs "mod"
 
 -- TODO:
@@ -227,3 +240,6 @@ builtinMod _ _ = Left $ errNumberArgs "mod"
 -- Fix all TODO
 -- Better Error Handling (no define inside anything)
 -- add the fractions
+-- add zero?
+-- cond
+-- history command and maybe left/right key
