@@ -8,7 +8,7 @@
 module Lisp.Evaluate (evalAst) where
 
 import Data.Fixed (mod')
-import Data.List (elemIndex, find, nub)
+import Data.List (find)
 -- import Debug.Trace (trace)
 import Lisp.Ast (Ast (..), Ctx)
 import Lisp.ErrorMessage
@@ -31,8 +31,8 @@ evalAst ctx x@(TFloat {}) = Right (x, ctx)
 evalAst ctx x@(TBool {}) = Right (x, ctx)
 evalAst ctx x@TVoid = Right (x, ctx)
 evalAst ctx x@(TString {}) = Right (x, ctx)
-evalAst ctx TLambda {} = Right (TLambda [] TVoid, ctx) -- this is a lambda assigned to nothing
-evalAst ctx (TLambdaFly args lambda) = (,) <$> lambdaEval ctx args lambda <*> Right ctx -- this is a lambda called when created
+evalAst ctx TLambda {} = Right (TLambda [] TVoid, ctx) -- this is a lambda assigned to nothing, may be passed as param to a function like: (define (f1orf2 cond v f1 f2) (if cond (f1 v) (f2 v))); (f1orf2 #t 1 (lambda (x) (+ x 1)) (lambda (x) (+ x 2)))
+evalAst ctx (TLambdaFly args lambda) = (,) <$> lambdaEval "lambda" ctx args lambda <*> Right ctx -- this is a lambda called when created: ((lambda (a b) (+ a b)) 5 4) => 9
 evalAst ctx (TDefineVariable name body) = (,) <$> Right TVoid <*> defineVariable ctx name body
 evalAst ctx (TDefineFunction name body) = (,) <$> Right TVoid <*> defineFunction ctx name body
 evalAst ctx (TIf cond_ then_ else_) = (,) <$> ifEval ctx cond_ then_ else_ <*> Right ctx
@@ -69,49 +69,31 @@ defineFunction ctx name body = (:) <$> Right (TFunction name body) <*> Right new
   where
     newCtx = filter (not . sameName name) ctx
 
-lambdaEval :: Ctx -> Args -> Ast -> Either EvalErr Ast
-lambdaEval _ eargs (TLambda args _) | length eargs /= length args = Left $ errNumberArgs "lambda"
-lambdaEval ctx eargs (TLambda args body) = combineContext ctx eargs args body >>= (`evalAst` body) >>= (Right . fst)
-lambdaEval _ eargs ast = Left $ errImpossible $ "lambdaeval without a lambda: " ++ show eargs ++ ", " ++ show ast
+lambdaEval :: String -> Ctx -> Args -> Ast -> Either EvalErr Ast
+lambdaEval fnNameIfOne _ eargs (TLambda args _) | length eargs /= length args = Left $ errNumberArgs fnNameIfOne
+lambdaEval _ ctx eargs (TLambda args body) = combineContext ctx eargs args >>= (`evalAst` body) >>= (Right . fst)
+lambdaEval fnNameIfOne _ eargs ast = Left $ errImpossible $ "lambdaeval without a lambda: " ++ show fnNameIfOne ++ ", " ++ show eargs ++ ", " ++ show ast
 
-combineContext :: Ctx -> Args -> [String] -> Ast -> Either EvalErr Ctx
-combineContext ctx eargs args ast = updateCtxWSymbol ctx eargs args symbols
+combineContext :: Ctx -> Args -> [String] -> Either EvalErr Ctx
+combineContext ctx eargs args = combinedContext
   where
-    symbols = nub $ retrieveAllSymbols ast
+    newValues :: Either EvalErr Ctx
+    newValues = assignValues ctx eargs args
 
-updateCtxWSymbol :: Ctx -> Args -> [String] -> [String] -> Either EvalErr Ctx
-updateCtxWSymbol ctx _ _ [] = Right ctx
-updateCtxWSymbol ctx eargs args (s : symbols) =
-  case elemIndex s args of
-    Nothing -> updateCtxWSymbol ctx eargs args symbols
-    Just index -> case eargs !! index of
-      x@(TLambda {}) -> updateCtxWSymbol (TFunction s x : newCtx) eargs args symbols
-      (TVariableCall name) | isFunction ctx name -> updateCtxWSymbol (TFunction s (findFunction ctx name) : newCtx) eargs args symbols
-      x -> case evalAst ctx x of
-        Left err -> Left err
-        Right (v, _) -> updateCtxWSymbol (TVariable s v : newCtx) eargs args symbols
-      where
-        newCtx = filter (not . sameName s) ctx
+    combinedContext :: Either EvalErr Ctx
+    combinedContext = newValues >>= Right . removeDouble ctx
 
-findFunction :: Ctx -> String -> Ast
-findFunction [] _ = TVoid
-findFunction ((TFunction name' body) : rst) name
-  | name == name' = body
-  | otherwise = findFunction rst name
-findFunction (_ : rst) name = findFunction rst name
+removeDouble :: Ctx -> Ctx -> Ctx
+removeDouble oldCtx [] = oldCtx
+removeDouble oldCtx (x@(TVariable name _) : rst) = (:) x $ removeDouble (filter (not . sameName name) oldCtx) rst
+removeDouble oldCtx (x@(TFunction name _) : rst) = (:) x $ removeDouble (filter (not . sameName name) oldCtx) rst
+removeDouble oldCtx (x : rst) = (:) x $ removeDouble oldCtx rst
 
-isFunction :: Ctx -> String -> Bool
-isFunction [] _ = False
-isFunction ((TFunction name' _) : rst) name
-  | name == name' = True
-  | otherwise = isFunction rst name
-isFunction (_ : rst) name = isFunction rst name
-
-retrieveAllSymbols :: Ast -> [String]
-retrieveAllSymbols (TVariableCall name) = [name]
-retrieveAllSymbols (TFunctionCall name body) = name : concatMap retrieveAllSymbols body
-retrieveAllSymbols (TIf c t e) = retrieveAllSymbols c ++ retrieveAllSymbols t ++ retrieveAllSymbols e
-retrieveAllSymbols _ = []
+assignValues :: Ctx -> Args -> [String] -> Either EvalErr Ctx
+assignValues _ _ [] = Right []
+assignValues _ [] _ = Right [] -- should never happend because we checked before if the number of args were equivalent
+assignValues ctx (b@(TLambda {}) : valueRst) (vName : nameRst) = (:) <$> (TFunction <$> Right vName <*> Right b) <*> assignValues ctx valueRst nameRst
+assignValues ctx (vValue : valueRst) (vName : nameRst) = (:) <$> (TVariable <$> Right vName <*> (evalAst ctx vValue >>= Right . fst)) <*> assignValues ctx valueRst nameRst
 
 functionEval :: Ctx -> String -> Args -> Either EvalErr Ast
 functionEval ctx "eq?" args = builtinEq ctx args
@@ -128,8 +110,8 @@ functionEval ctx "string-append" args = builtinStringAppend ctx args
 functionEval ctx name args =
   case find (sameName name) ctx of
     Nothing -> Left $ errUnboundVar name
-    Just (TVariable {}) -> Left $ errNonProcedure name
-    Just (TFunction _ lambda) -> lambdaEval ctx args lambda
+    Just (TVariable vName vBody) -> Left $ errNonProcedure "name:" ++ vName ++ ", body:" ++ show vBody
+    Just (TFunction fnName lambda) -> lambdaEval fnName ctx args lambda
     _ -> Left $ errImpossible "we found the variable but it's not there anymore"
 
 builtinStringAppend :: Ctx -> Args -> Either EvalErr Ast
