@@ -1,0 +1,5 @@
+(define (ffibo x) (ffibo-helper x 0 1))
+(define (ffibo-helper n base-0 base-1) (if (zero? n) base-0 (if (zero? (- n 1)) base-1 (ffibo-helper (- n 1) base-1 (+ base-0 base-1)))))
+(ffibo 2)
+(ffibo 10)
+(ffibo 60)

@@ -64,3 +64,10 @@ glados> 1
 glados> 5
 glados> 55
 glados> """
+
+[test.fast_fibonnaci]
+cmd = "../glados < ../test/input/fibonacci_fast.scm"
+stdout = """glados> glados> glados> 1
+glados> 55
+glados> 1548008755920
+glados> """
