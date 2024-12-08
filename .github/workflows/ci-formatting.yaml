@@ -22,7 +22,7 @@ jobs:
       # (Epitech's coding style checker)
       - name: Run lambdananas
         run: |
-          lambdananas . | grep -v "too long" > $REPORT_FILE
+          lambdananas . | grep -v "too long" > $REPORT_FILE || true
           if [ -s $REPORT_FILE ]; then
             cat $REPORT_FILE
             exit 1
