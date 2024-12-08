@@ -21,3 +21,4 @@ jobs:
         with:
           artifacts: "./glados"
           tag: v1.0.${{ github.run_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
