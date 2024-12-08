@@ -17,7 +17,6 @@ import Lisp.Parser (parseInput, runParser)
 import System.IO (hFlush, stdout)
 import Text.Megaparsec (errorBundlePretty)
 
--- parseSExpr -> Ast -> Execute -> Return and display result except void
 interpreter :: Ctx -> String -> IO ()
 interpreter ctx lastInput = catch runInterpreter eofHandler
   where
@@ -62,4 +61,4 @@ execute ctx input = case runParser parseInput "" (pack input) of
     Right ast -> case evalAst ctx ast of
       Left err -> putStrLn err >> interpreter ctx ""
       Right (TVoid, newCtx) -> interpreter newCtx ""
-      Right (astToDisplay, newCtx) -> putStrLn (astToString newCtx astToDisplay) >> interpreter newCtx ""
+      Right (astToDisplay, newCtx) -> putStrLn (astToString astToDisplay) >> interpreter newCtx ""

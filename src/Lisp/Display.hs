@@ -7,26 +7,26 @@
 
 module Lisp.Display (astToString) where
 
-import Lisp.Ast (Ast (..), Ctx)
+import Lisp.Ast (Ast (..))
 
 procedure :: [String] -> String
 procedure [name] = "#<procedure " ++ name ++ ">"
 procedure _ = "#<procedure>"
 
-astToString :: Ctx -> Ast -> String
-astToString _ TVoid = "void"
-astToString _ (TBool True) = "#t"
-astToString _ (TBool False) = "#f"
-astToString _ (TInt x) = show x
-astToString _ (TFloat x) = show x
-astToString _ (TString x) = show x
-astToString _ (TLambda name _) = procedure name -- TODO: Lambda can be without any arguments
-astToString _ (TLambdaFly {}) = "lambdaFlyToString impossible"
-astToString _ (TIf {}) = "ifToString impossible"
-astToString _ (TCond {}) = "condToString impossible"
-astToString _ (TFunction {}) = "functionToString impossible"
-astToString _ (TVariable {}) = "variableToString impossible"
-astToString _ (TDefineFunction {}) = "defineFunctionToString impossible"
-astToString _ (TDefineVariable {}) = "defineVariableToString impossible"
-astToString _ (TFunctionCall {}) = "variableCallToString impossible"
-astToString _ (TVariableCall {}) = "functionCallToString impossible"
+astToString :: Ast -> String
+astToString TVoid = "void"
+astToString (TBool True) = "#t"
+astToString (TBool False) = "#f"
+astToString (TInt x) = show x
+astToString (TFloat x) = show x
+astToString (TString x) = show x
+astToString (TLambda name _) = procedure name
+astToString (TLambdaFly {}) = "lambdaFlyToString impossible"
+astToString (TIf {}) = "ifToString impossible"
+astToString (TCond {}) = "condToString impossible"
+astToString (TFunction {}) = "functionToString impossible"
+astToString (TVariable {}) = "variableToString impossible"
+astToString (TDefineFunction {}) = "defineFunctionToString impossible"
+astToString (TDefineVariable {}) = "defineVariableToString impossible"
+astToString (TFunctionCall {}) = "variableCallToString impossible"
+astToString (TVariableCall {}) = "functionCallToString impossible"

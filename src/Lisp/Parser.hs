@@ -32,7 +32,7 @@ import Control.Applicative ((<|>))
 import Data.Text (Text, pack)
 import Data.Void (Void)
 import Lisp.SExpression (SExpr (..))
-import Text.Megaparsec (MonadParsec (eof), Parsec, many, noneOf, oneOf, parse, parseTest, runParser, some, try) -- TODO: skipSome
+import Text.Megaparsec (MonadParsec (eof), Parsec, many, noneOf, oneOf, parse, parseTest, runParser, some, try)
 import Text.Megaparsec.Char (char)
 import Text.Megaparsec.Char.Lexer (decimal, float, signed)
 
@@ -72,5 +72,3 @@ parseInput :: Parser SExpr
 parseInput = many spaces *> parseOneExp <* many spaces <* eof
   where
     parseOneExp = try parseSFloat <|> try parseSInt <|> try parseSSymbol <|> try parseSString <|> try parseSList
-
--- TODO: add tests

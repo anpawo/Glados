@@ -45,7 +45,6 @@ type AstError = String
 
 type Ctx = [Ast]
 
--- TODO: prevent edge cases like (define x (define y))
 sexprToAST :: SExpr -> Either AstError Ast
 sexprToAST (SInt x) = Right $ TInt x
 sexprToAST (SFloat x) = Right $ TFloat x

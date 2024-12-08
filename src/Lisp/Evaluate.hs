@@ -229,11 +229,8 @@ builtinMod _ _ = Left $ errNumberArgs "mod"
 
 -- TODO:
 -- Doc
--- Ci (release)
 -- Tests
 -- Fix all TODO
 -- Better Error Handling (no define inside anything)
 -- add the fractions
--- add zero?
--- cond
 -- history command and maybe left/right key
