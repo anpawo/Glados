@@ -140,12 +140,10 @@ builtinStringAppend ctx args = consumeString args >>= (Right . TString)
 builtinZero :: Ctx -> Args -> Either EvalErr Ast
 builtinZero ctx [x] = (evalAst ctx x >>= (Right . fst)) >>= evalBuiltin
   where
-    evalBuiltin (TInt a)
-      | a == 0 = Right $ TBool True
-      | otherwise = Right $ TBool False
-    evalBuiltin (TFloat a)
-      | a == 0.0 = Right $ TBool True
-      | otherwise = Right $ TBool False
+    evalBuiltin (TInt 0) = Right $ TBool True
+    evalBuiltin (TInt _) = Right $ TBool False
+    evalBuiltin (TFloat 0.0) = Right $ TBool True
+    evalBuiltin (TFloat _) = Right $ TBool False
     evalBuiltin _ = Left $ errTypeArgs "zero?" "number"
 builtinZero _ _ = Left $ errNumberArgs "zero?"
 

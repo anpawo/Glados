@@ -59,8 +59,7 @@ execute ctx input = case runParser parseInput "" (pack input) of
   Left err -> putStr (errorBundlePretty err) >> interpreter ctx ""
   Right expr -> case sexprToAST expr of
     Left err -> putStrLn err >> interpreter ctx ""
-    Right ast -> do
-      case evalAst ctx ast of
-        Left err -> putStrLn err >> interpreter ctx ""
-        Right (TVoid, newCtx) -> interpreter newCtx ""
-        Right (astToDisplay, newCtx) -> putStrLn (astToString newCtx astToDisplay) >> interpreter newCtx ""
+    Right ast -> case evalAst ctx ast of
+      Left err -> putStrLn err >> interpreter ctx ""
+      Right (TVoid, newCtx) -> interpreter newCtx ""
+      Right (astToDisplay, newCtx) -> putStrLn (astToString newCtx astToDisplay) >> interpreter newCtx ""
