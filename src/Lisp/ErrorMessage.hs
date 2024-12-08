@@ -5,10 +5,13 @@
 -- ErrorMessage
 -}
 
-module Lisp.ErrorMessage (errDef, errFnDef, errVarDef, errCall, errDefCtx, errIf, errLambda, errNonProcedure, errImpossible, errUnboundVar, errNumberArgs, errTypeArgs) where
+module Lisp.ErrorMessage (errDef, errFnDef, errVarDef, errCall, errDefCtx, errIf, errLambda, errNonProcedure, errImpossible, errUnboundVar, errNumberArgs, errTypeArgs, errCond) where
 
 errIf :: String -> String
 errIf err = "Error: Invalid if: " ++ err
+
+errCond :: String -> String
+errCond err = "Error: Invalid cond: " ++ err
 
 errLambda :: String -> String
 errLambda err = "Error: Invalid lambda: " ++ err

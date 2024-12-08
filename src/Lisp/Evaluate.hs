@@ -36,8 +36,22 @@ evalAst ctx (TLambdaFly args lambda) = (,) <$> lambdaEval "lambda" ctx args lamb
 evalAst ctx (TDefineVariable name body) = (,) <$> Right TVoid <*> defineVariable ctx name body
 evalAst ctx (TDefineFunction name body) = (,) <$> Right TVoid <*> defineFunction ctx name body
 evalAst ctx (TIf cond_ then_ else_) = (,) <$> ifEval ctx cond_ then_ else_ <*> Right ctx
+evalAst ctx (TCond conditions) = (,) <$> condEval ctx conditions <*> Right ctx
 evalAst ctx (TVariableCall name) = (,) <$> (retrieveVariable ctx name >>= Right) <*> Right ctx
 evalAst ctx (TFunctionCall name args) = (,) <$> functionEval ctx name args <*> Right ctx
+
+condEval :: Ctx -> [(Ast, Ast)] -> Either EvalErr Ast
+condEval _ [] = Left $ errImpossible "empty cond"
+condEval ctx [(cond, body)] =
+  case evalAst ctx cond >>= (Right . fst) of
+    Right (TBool False) -> Right TVoid
+    Right _ -> evalAst ctx body >>= Right . fst
+    Left err -> Left err
+condEval ctx ((cond, body) : rst) =
+  case evalAst ctx cond >>= (Right . fst) of
+    Right (TBool False) -> condEval ctx rst
+    Right _ -> evalAst ctx body >>= Right . fst
+    Left err -> Left err
 
 ifEval :: Ctx -> Ast -> Ast -> Ast -> Either EvalErr Ast
 ifEval ctx cond_ then_ else_ =

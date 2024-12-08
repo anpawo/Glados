@@ -23,6 +23,7 @@ astToString _ (TString x) = show x
 astToString _ (TLambda name _) = procedure name -- TODO: Lambda can be without any arguments
 astToString _ (TLambdaFly {}) = "lambdaFlyToString impossible"
 astToString _ (TIf {}) = "ifToString impossible"
+astToString _ (TCond {}) = "condToString impossible"
 astToString _ (TFunction {}) = "functionToString impossible"
 astToString _ (TVariable {}) = "variableToString impossible"
 astToString _ (TDefineFunction {}) = "defineFunctionToString impossible"

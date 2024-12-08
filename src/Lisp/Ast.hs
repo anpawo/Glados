@@ -14,6 +14,7 @@ module Lisp.Ast
   )
 where
 
+import Data.List (singleton)
 import Lisp.ErrorMessage
 import Lisp.SExpression (SExpr (..), getSymbol)
 
@@ -25,6 +26,7 @@ data Ast
   | TVoid
   | TString String
   | TIf {ifCond :: Ast, ifThen :: Ast, ifElse :: Ast}
+  | TCond {condBody :: [(Ast, Ast)]} -- [Cond:Body, Cond:Body, else: Body]
   | TLambdaFly {givenArgs :: [Ast], lBody :: Ast} -- Lambda body
   | -- lambda type (functions{args, body})
     TLambda {lambdaArgs :: [String], lambdaBody :: Ast}
@@ -57,7 +59,23 @@ handleList :: [SExpr] -> Either AstError Ast
 handleList (SSymbol "define" : rst) = handleDefine rst
 handleList (SSymbol "if" : rst) = handleIf rst
 handleList (SSymbol "lambda" : rst) = handleLambda rst
+handleList (SSymbol "cond" : rst) = handleCond rst
 handleList functionNameAndArgs = handleCall functionNameAndArgs
+
+-- Cond
+handleCond :: [SExpr] -> Either AstError Ast
+handleCond [] = Left $ errCond "invalid syntax (you must provide at least one condition)"
+handleCond x = consumeCond x >>= Right . TCond
+  where
+    consumeCond :: [SExpr] -> Either AstError [(Ast, Ast)]
+    consumeCond [] = Right [(TBool True, TVoid)]
+    consumeCond [SList [SSymbol "else", body]] = ((,) <$> Right (TBool True) <*> sexprToAST body) >>= Right . singleton -- Right [(TBool True, sexprToAST body)]
+    consumeCond (SList [SSymbol "else", _] : _) = Left $ errCond "else must be the last possible condition"
+    consumeCond (SList [cond, body] : rst) = (:) <$> ((,) <$> sexprToAST cond <*> sexprToAST body) <*> consumeCond rst
+    consumeCond (SList [condAndBody] : rst) = (:) <$> ((,) <$> sexprToAST condAndBody <*> sexprToAST condAndBody) <*> consumeCond rst
+    consumeCond _ = Left $ errCond "conditions must be lists"
+
+-- Cond
 
 -- Lambda
 handleLambda :: [SExpr] -> Either AstError Ast
