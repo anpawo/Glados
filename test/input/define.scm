@@ -4,7 +4,7 @@ var
 (fun)
 (define (add x y) (+ x y))
 (add 2 3)
-(define (older name1 age1 name2 age2) (if (< age1 age2) name2 (if (= age1 age2) (string-append name1 " and " name2 " have the same age") name1)))
+(define (older name1 age1 name2 age2) (if (< age1 age2) name2 (if (= age1 age2) (string-append name1 " and " name2 " are both " (number->string age1)) name1)))
 (older "marius" 19 "cyprien" 17)
 (older "faustine" 15 "cyprien" 17)
 (older "papa" 51 "maman" 51)

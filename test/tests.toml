@@ -8,7 +8,7 @@ glados> 0
 glados> 1.25
 glados> Error: Division by 0
 glados> 0
-glados> 1.25
+glados> 1
 glados> 1
 glados> #t
 glados> #f
@@ -26,7 +26,7 @@ glados> glados> 21
 glados> glados> 5
 glados> glados> "marius"
 glados> "cyprien"
-glados> "papa and maman have the same age"
+glados> "papa and maman are both 51"
 glados> """
 
 [test.if]

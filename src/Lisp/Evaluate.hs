@@ -12,12 +12,6 @@ import Data.List (find)
 -- import Debug.Trace (trace)
 import Lisp.Ast (Ast (..), Ctx)
 import Lisp.ErrorMessage
-  ( errImpossible,
-    errNonProcedure,
-    errNumberArgs,
-    errTypeArgs,
-    errUnboundVar,
-  )
 
 type EvalErr = String
 
@@ -117,16 +111,25 @@ functionEval ctx "<" args = builtinLT ctx args
 functionEval ctx "+" args = builtinAdd ctx args
 functionEval ctx "-" args = builtinSub ctx args
 functionEval ctx "*" args = builtinMul ctx args
-functionEval ctx "div" args = builtinDiv ctx args
+functionEval ctx "div" args = builtinDivInt ctx args
 functionEval ctx "/" args = builtinDiv ctx args
 functionEval ctx "mod" args = builtinMod ctx args
 functionEval ctx "string-append" args = builtinStringAppend ctx args
+functionEval ctx "number->string" args = builtinNumberToString ctx args
 functionEval ctx name args =
   case find (sameName name) ctx of
     Nothing -> Left $ errUnboundVar name
     Just (TVariable vName vBody) -> Left $ errNonProcedure "name:" ++ vName ++ ", body:" ++ show vBody
     Just (TFunction fnName lambda) -> lambdaEval fnName ctx args lambda
     _ -> Left $ errImpossible "we found the variable but it's not there anymore"
+
+builtinNumberToString :: Ctx -> Args -> Either EvalErr Ast
+builtinNumberToString ctx [ex] = (evalAst ctx ex >>= (Right . fst)) >>= numberToString >>= Right
+  where
+    numberToString (TInt x) = Right $ TString $ show x
+    numberToString (TFloat x) = Right $ TString $ show x
+    numberToString _ = Left $ errTypeArgs "number->string" "number"
+builtinNumberToString _ _ = Left $ errNumberArgs "number->string"
 
 builtinStringAppend :: Ctx -> Args -> Either EvalErr Ast
 builtinStringAppend ctx args = consumeString args >>= (Right . TString)
@@ -194,6 +197,18 @@ builtinMul ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ct
     evalBuiltin (TInt a, TFloat b) = Right $ TFloat (fromIntegral a * b)
     evalBuiltin _ = Left $ errTypeArgs "*" "number"
 builtinMul _ _ = Left $ errNumberArgs "*"
+
+builtinDivInt :: Ctx -> Args -> Either EvalErr Ast
+builtinDivInt ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
+  where
+    evalBuiltin (_, TInt 0) = Left "Error: Division by 0"
+    evalBuiltin (_, TFloat 0.0) = Left "Error: Division by 0"
+    evalBuiltin (TInt a, TInt b) = Right $ TInt $ a `div` b
+    evalBuiltin (TFloat a, TFloat b) = Right $ TInt $ truncate (a / b)
+    evalBuiltin (TFloat a, TInt b) = Right $ TInt $ truncate (a / fromIntegral b)
+    evalBuiltin (TInt a, TFloat b) = Right $ TInt $ truncate (fromIntegral a / b)
+    evalBuiltin _ = Left $ errTypeArgs "div" "number"
+builtinDivInt _ _ = Left $ errNumberArgs "div"
 
 builtinDiv :: Ctx -> Args -> Either EvalErr Ast
 builtinDiv ctx [l, r] = ((,) <$> (evalAst ctx l >>= Right . fst) <*> (evalAst ctx r >>= Right . fst)) >>= evalBuiltin
