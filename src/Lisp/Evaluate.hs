@@ -5,7 +5,18 @@
 -- Evaluate
 -}
 
-module Lisp.Evaluate (evalAst) where
+module Lisp.Evaluate (
+  evalAst,
+  builtinEq,
+  builtinZero,
+  builtinAdd,
+  builtinSub,
+  builtinMul,
+  builtinDiv,
+  builtinMod,
+  builtinStringAppend,
+  builtinNumberToString
+) where
 
 import Data.Fixed (mod')
 import Data.List (find)
