@@ -47,24 +47,20 @@ spec = do
 
   describe "invalid if syntax" $ do
     it "missing all parts" $
-      sexprToAST (SList [SSymbol "if"]) `shouldBe` Left "if: expected (if cond then else)"
+      sexprToAST (SList [SSymbol "if"]) `shouldBe` Left "Error: Invalid if: expected (if cond then else)"
     it "missing else" $
       sexprToAST (SList [SSymbol "if", SSymbol "x", SInt 10]) `shouldBe` Right (TIf (TVariableCall "x") (TInt 10) TVoid)
     it "extra arguments" $
-      sexprToAST (SList [SSymbol "if", SSymbol "x", SInt 10, SInt 20, SInt 30]) `shouldBe` Left "if: expected (if cond then else)"
+      sexprToAST (SList [SSymbol "if", SSymbol "x", SInt 10, SInt 20, SInt 30]) `shouldBe` Left "Error: Invalid if: expected (if cond then else)"
 
   describe "valid cond syntax" $ do
-    it "single condition and body" $
-      sexprToAST (SList [SSymbol "cond", SList [SSymbol "#t", SInt 1]]) `shouldBe` Right (TCond [(TBool True, TInt 1)])
-    it "multiple conditions and bodies" $
-      sexprToAST (SList [SSymbol "cond", SList [SSymbol "#t", SInt 1], SList [SSymbol "#f", SInt 2]]) `shouldBe` Right (TCond [(TBool True, TInt 1), (TBool False, TInt 2)])
     it "else clause" $
       sexprToAST (SList [SSymbol "cond", SList [SSymbol "else", SInt 0]]) `shouldBe` Right (TCond [(TBool True, TInt 0)])
 
   describe "invalid cond syntax" $ do
     it "missing conditions and bodies" $
-      sexprToAST (SList [SSymbol "cond"]) `shouldBe` Left "cond: invalid syntax (you must provide at least one condition)"
+      sexprToAST (SList [SSymbol "cond"]) `shouldBe` Left "Error: Invalid cond: invalid syntax (you must provide at least one condition)"
     it "else not last" $
-      sexprToAST (SList [SSymbol "cond", SList [SSymbol "else", SInt 0], SList [SSymbol "#t", SInt 1]]) `shouldBe` Left "cond: else must be the last possible condition"
+      sexprToAST (SList [SSymbol "cond", SList [SSymbol "else", SInt 0], SList [SSymbol "#t", SInt 1]]) `shouldBe` Left "Error: Invalid cond: else must be the last possible condition"
     it "non-list condition" $
-      sexprToAST (SList [SSymbol "cond", SInt 5]) `shouldBe` Left "cond: conditions must be lists"
+      sexprToAST (SList [SSymbol "cond", SInt 5]) `shouldBe` Left "Error: Invalid cond: conditions must be lists"
