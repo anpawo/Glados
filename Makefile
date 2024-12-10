@@ -56,6 +56,7 @@ test: functionnal-tests
 
 .PHONY: coverage
 coverage:
+	stack clean
 	stack test --coverage
 
 
