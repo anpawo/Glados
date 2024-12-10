@@ -5,7 +5,7 @@
 -- Display
 -}
 
-module Lisp.Display (astToString) where
+module Lisp.Display (astToString, procedure) where
 
 import Lisp.Ast (Ast (..))
 
