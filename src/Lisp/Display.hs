@@ -5,7 +5,7 @@
 -- Display
 -}
 
-module Lisp.Display (astToString) where
+module Lisp.Display (astToString, procedure) where
 
 import Lisp.Ast (Ast (..))
 
@@ -28,5 +28,5 @@ astToString (TFunction {}) = "functionToString impossible"
 astToString (TVariable {}) = "variableToString impossible"
 astToString (TDefineFunction {}) = "defineFunctionToString impossible"
 astToString (TDefineVariable {}) = "defineVariableToString impossible"
-astToString (TFunctionCall {}) = "variableCallToString impossible"
-astToString (TVariableCall {}) = "functionCallToString impossible"
+astToString (TFunctionCall {}) = "functionCallToString impossible"
+astToString (TVariableCall {}) = "variableCallToString impossible"

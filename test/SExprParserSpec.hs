@@ -16,7 +16,7 @@ import Text.Megaparsec.Error (errorBundlePretty)
 testParser :: LP.Parser LP.SExpr -> String -> Either String LP.SExpr
 testParser p input =
   case LP.runParser p "" (pack input) of
-    Left err -> Left (errorBundlePretty err) -- doesnt work well
+    Left err -> Left (errorBundlePretty err)
     Right x -> Right x
 
 spec :: Spec
@@ -78,6 +78,10 @@ spec = do
       testParser LP.parseSSymbol "" `shouldSatisfy` isLeft
     it "symbol starting with number" $
       testParser LP.parseSSymbol "1abc" `shouldSatisfy` isLeft
+    it "forbidden special characters in symbol" $
+      testParser LP.parseSSymbol "()" `shouldSatisfy` isLeft
+    it "symbol starting with number" $
+      testParser LP.parseSSymbol "5_test" `shouldSatisfy` isLeft
 
   -- String
   describe "parse String success" $ do
@@ -131,7 +135,11 @@ spec = do
     it "list with invalid types" $
       testParser LP.parseSList "(123 \"unclosed string  world -456)" `shouldSatisfy` isLeft
 
-
-
-
--- need to finish this with the errors and more valid cases
+  -- Input
+  describe "parse good Input" $ do
+    it "complex S-expression input" $
+      testParser LP.parseInput "(define (square x) (* x x))" `shouldBe` Right (LP.SList [LP.SSymbol "define", LP.SList [LP.SSymbol "square", LP.SSymbol "x"], LP.SList [LP.SSymbol "*", LP.SSymbol "x", LP.SSymbol "x"]])
+ 
+  describe "parse bad Input" $ do
+    it "input with invalid S-expression parts" $
+      testParser LP.parseInput "(define 123abc)" `shouldSatisfy` isLeft
