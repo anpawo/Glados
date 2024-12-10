@@ -41,3 +41,17 @@ spec =  do
       getList (SList [SInt 1, SFloat 2.0]) `shouldBe` Just [SInt 1, SFloat 2.0]
     it "returns Nothing when not given an SList" $ do
       getList (SInt 1) `shouldBe` Nothing
+
+  describe "printTree" $ do
+    it "returns the string representation of an SInt" $ do
+      printTree (SInt 1) `shouldBe` Just "Int 1"
+    it "returns the string representation of an SFloat" $ do
+      printTree (SFloat 1.0) `shouldBe` Just "Float 1.0"
+    it "returns the string representation of an SSymbol" $ do
+      printTree (SSymbol "test") `shouldBe` Just "Symbol test"
+    it "returns the string representation of an SString" $ do
+      printTree (SString "test") `shouldBe` Just "String test"
+    it "returns the string representation of an SList" $ do
+      printTree (SList [SInt 1, SFloat 2.0]) `shouldBe` Just "List [[\"Int 1\",\"Float 2.0\"]]"
+    --it "returns Nothing when the list contains an invalid SExpr" $ do
+    --  printTree (SList []) `shouldBe` Nothing
