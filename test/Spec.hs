@@ -7,10 +7,12 @@
 
 -- import AstSpec (spec)
 import SExprParserSpec (spec)
+import SExpressionSpec (spec)
 import Test.Hspec (describe, hspec)
 
 main :: IO ()
 main = hspec $ do
   describe "Parsing String to SExpr" SExprParserSpec.spec
+  describe "SExpression getter" SExpressionSpec.spec
 
 --   -- describe "Ast" AstSpec.spec
